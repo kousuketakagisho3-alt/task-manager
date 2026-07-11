@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<!--
+  キャパ管理ツール
+  ────────────────
+  使い方:
+  このHTMLファイルをブラウザで開くだけで動きます。
+  インターネット接続・サーバー不要。
+  データはブラウザのlocalStorageに保存されます（同じブラウザ・端末で引き継がれます）。
+
+  他の人に渡す場合:
+  このファイルをそのまま渡してください。
+  各自のブラウザで開けば独立して使えます（データは共有されません）。
+
+  AIアドバイス機能はインターネット接続が必要です。
+-->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>キャパ管理</title>
+<style>
+:root{
+  --bg:#FFFFFF;--surface:#FFFFFF;--border:#ECECEF;--border-mid:#DDDDE2;
+  --text:#26262B;--text-muted:#8A8A93;--text-hint:#C7C7CE;
+  --accent:#FF6FA5;--accent-light:#FFE6F0;--accent2:#FFD93D;--accent2-light:#FFF6D6;--accent3:#5EE0D0;
+  --radius:18px;--radius-sm:12px;
+  --shadow-card:0 3px 16px rgba(0,0,0,.06);
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1C1C1F;--surface:#252529;--border:#34343A;--border-mid:#46464D;
+  --text:#F0F0F2;--text-muted:#9A9AA3;--text-hint:#5C5C66;
+  --accent:#FF8FBC;--accent-light:#3A2438;--accent2:#FFE066;--accent2-light:#3A341A;--accent3:#7CEAD9;
+  --shadow-card:0 3px 16px rgba(0,0,0,.35);
+}}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+.app{max-width:580px;margin:0 auto;padding:2rem 1.25rem 4rem;}
+header{display:flex;align-items:baseline;gap:10px;margin-bottom:1.5rem;}
+header h1{font-size:22px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(95deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+header h1::before{content:'🎀 ';-webkit-text-fill-color:initial;}
+header span{font-size:13px;color:var(--text-muted);}
+.tabs{display:flex;gap:3px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px;margin-bottom:1.5rem;box-shadow:var(--shadow-card);}
+.tab{flex:1;padding:8px 0;border:none;background:none;border-radius:999px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:inherit;font-weight:600;transition:all .15s;}
+.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;box-shadow:0 2px 8px rgba(255,111,165,.35);}
+.pane{display:none;}.pane.active{display:block;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem 1.25rem;margin-bottom:1rem;box-shadow:var(--shadow-card);}
+.field-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-bottom:8px;letter-spacing:.04em;}
+.input-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+input[type=text],input[type=number],input[type=date],select{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:13px;color:var(--text);font-family:inherit;outline:none;}
+input[type=text]:focus,input[type=number]:focus,input[type=date]:focus,select:focus{border-color:var(--accent);}
+input[type=text]{width:100%;}input[type=number]{width:72px;}
+.energy-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.ebtn{padding:8px 4px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--text-muted);font-size:12px;cursor:pointer;text-align:center;font-family:inherit;line-height:1.4;transition:all .15s;}
+.ebtn strong{display:block;font-size:16px;font-weight:600;color:var(--text);}
+.ebtn.active{border-color:transparent;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 2px 8px rgba(255,111,165,.3);}
+.ebtn.active strong{color:#fff;}
+.btn-primary{width:100%;padding:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;box-shadow:0 4px 14px rgba(255,111,165,.32);transition:transform .12s,box-shadow .12s;}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(255,111,165,.4);}
+.btn-secondary{padding:7px 14px;background:var(--accent2-light);border:1px solid var(--border);border-radius:999px;font-size:13px;color:var(--text);cursor:pointer;font-family:inherit;}
+/* chips */
+.chip{font-size:11px;padding:2px 7px;border-radius:999px;font-weight:500;white-space:nowrap;}
+.chip-gray{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);}
+.chip-e1{background:#eaf3de;color:#3b6d11;}.chip-e2{background:#e6f1fb;color:#185fa5;}
+.chip-e3{background:#faeeda;color:#854f0b;}.chip-e4{background:#faece7;color:#993c1d;}.chip-e5{background:#fcebeb;color:#a32d2d;}
+.chip-ph{background:#fcebeb;color:#a32d2d;}.chip-pm{background:#faeeda;color:#854f0b;}.chip-pl{background:#eaf3de;color:#3b6d11;}
+.chip-dl-ok{background:#e6f1fb;color:#185fa5;}.chip-dl-near{background:#faeeda;color:#854f0b;}.chip-dl-today{background:#fcebeb;color:#a32d2d;font-weight:600;}
+.chip-rec{background:#f0eaf8;color:#6b3fa0;}
+@media(prefers-color-scheme:dark){
+  .chip-e1,.chip-pl{background:#1a2e14;color:#7fc254;}.chip-e2{background:#102040;color:#5fa8e8;}
+  .chip-e3,.chip-pm{background:#2e2010;color:#e0a040;}.chip-e4{background:#2e1810;color:#e07040;}
+  .chip-e5,.chip-ph{background:#2e1010;color:#e05050;}
+  .chip-dl-ok{background:#102040;color:#5fa8e8;}.chip-dl-near{background:#2e2010;color:#e0a040;}.chip-dl-today{background:#2e1010;color:#e05050;}
+  .chip-rec{background:#2a1a40;color:#c090f0;}
+}
+/* inline edits */
+.inline-sel{font-size:11px;padding:2px 5px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text-muted);font-family:inherit;cursor:pointer;}
+.inline-sel:focus{border-color:var(--accent);outline:none;}
+.inline-date{font-size:11px;padding:2px 5px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text-muted);font-family:inherit;cursor:pointer;}
+/* task card in list */
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;box-shadow:var(--shadow-card);}
+.tcard:last-child{margin-bottom:0;}
+.tcard-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;}
+.tcard-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;}
+.tcard-row:last-child{margin-bottom:0;}
+.tcard-label{font-size:11px;color:var(--text-hint);width:44px;flex-shrink:0;}
+.tcard-name-input{font-size:13px;font-weight:500;color:var(--text);background:none;border:none;border-bottom:1.5px solid transparent;border-radius:0;padding:0 0 1px;width:100%;font-family:inherit;outline:none;transition:border-color .15s;}
+.tcard-name-input:hover{border-bottom-color:var(--border-mid);}
+.tcard-name-input:focus{border-bottom-color:var(--accent);}
+.drag-handle{cursor:grab;color:var(--text-hint);font-size:14px;padding:2px 4px;user-select:none;flex-shrink:0;margin-top:1px;}
+.drag-handle:active{cursor:grabbing;}
+.tcard{transition:opacity .15s,box-shadow .15s;}
+.tcard.dragging{opacity:.4;}
+.tcard.drag-over{box-shadow:0 -2px 0 var(--accent);}
+.auto-chip{font-size:10px;padding:1px 6px;border-radius:999px;background:var(--accent-light);color:var(--accent);font-weight:600;flex-shrink:0;}
+.del-btn{background:none;border:none;color:var(--text-hint);cursor:pointer;font-size:16px;padding:2px 4px;border-radius:4px;line-height:1;margin-left:auto;}
+.del-btn:hover{color:#e24b4a;}
+.empty{font-size:13px;color:var(--text-muted);padding:16px 0;text-align:center;}
+/* counter */
+.check-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);user-select:none;}
+.check-item:last-child{border-bottom:none;}
+.check-item .task-name{flex:1;font-size:13px;}
+.counter{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.counter-btn{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--border-mid);background:var(--bg);color:var(--text);font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-family:inherit;}
+.counter-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.counter-btn:disabled{opacity:.3;cursor:default;}
+.counter-val{min-width:18px;text-align:center;font-size:14px;font-weight:600;}
+.counter-val.active{color:var(--accent);}
+.selected-count{font-size:12px;color:var(--text-muted);margin-top:8px;}
+/* done checkboxes */
+.done-checks{display:flex;gap:5px;flex-shrink:0;}
+.done-chk{width:21px;height:21px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--border-mid);background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;}
+.done-chk.checked{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;box-shadow:0 2px 6px rgba(255,111,165,.4);}
+.done-chk.checked::after{content:'';display:block;width:4px;height:8px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);}
+.check-item.all-done .task-name{color:var(--text-hint);text-decoration:line-through;text-decoration-color:var(--border-mid);}
+.check-item.all-done{opacity:.5;}
+/* result */
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center;}
+.stat-label{font-size:11px;color:var(--text-muted);margin-bottom:4px;}
+.stat-val{font-size:22px;font-weight:600;}
+.rank-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;}
+.rb1{background:#faeeda;color:#854f0b;}.rb2{background:#e6f1fb;color:#185fa5;}.rb3{background:#eaf3de;color:#3b6d11;}.rbn{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);}
+@media(prefers-color-scheme:dark){.rb1{background:#2e2010;color:#e0a040;}.rb2{background:#102040;color:#5fa8e8;}.rb3{background:#1a2e14;color:#7fc254;}}
+.task-item{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:10px 0;border-bottom:1px solid var(--border);}
+.task-item:last-child{border-bottom:none;}
+.task-item-head{display:flex;align-items:center;gap:8px;flex:1 1 100%;min-width:0;}
+.task-item-chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex:1 1 100%;padding-left:32px;}
+.task-name{flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.fade-out{opacity:.4;}
+#ai-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.1rem;font-size:13px;line-height:1.75;margin-top:10px;white-space:pre-wrap;display:none;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--text);color:var(--bg);padding:8px 18px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;transition:all .2s;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* ── achievement ── */
+.ach-popup{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s;}
+.ach-popup.show{opacity:1;pointer-events:all;}
+.ach-popup-card{background:var(--surface);border-radius:20px;padding:2rem 2rem 1.5rem;text-align:center;max-width:320px;width:90%;box-shadow:0 12px 48px rgba(255,111,165,.35);transform:scale(.9);transition:transform .3s;border-top:6px solid transparent;border-image:linear-gradient(90deg,var(--accent),var(--accent2)) 1;}
+.ach-popup.show .ach-popup-card{transform:scale(1);}
+.ach-popup-icon{font-size:56px;margin-bottom:12px;line-height:1;}
+.ach-popup-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.ach-popup-sub{font-size:13px;color:var(--text-muted);margin-bottom:20px;}
+.ach-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.5rem;}
+.ach-stat{background:var(--accent2-light);border-radius:var(--radius-sm);padding:10px 6px;text-align:center;}
+.ach-stat-val{font-size:22px;font-weight:700;color:var(--accent);}
+.ach-stat-label{font-size:10px;color:var(--text-muted);margin-top:2px;}
+.level-bar-wrap{background:var(--bg);border-radius:999px;height:9px;overflow:hidden;margin:6px 0 12px;}
+.level-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease;}
+/* badge grid & rank */
+.rank-section{margin-bottom:20px;}
+.rank-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.rank-label{font-size:12px;font-weight:700;letter-spacing:.06em;padding:3px 12px;border-radius:999px;flex-shrink:0;}
+.rank-S .rank-label{background:#fff0d0;color:#b07000;border:1px solid #e8c060;}
+.rank-A .rank-label{background:#f0e8ff;color:#6030a0;border:1px solid #c8a8f0;}
+.rank-B .rank-label{background:#e0f0ff;color:#1060b0;border:1px solid #90c8f0;}
+.rank-C .rank-label{background:#e8f8e8;color:#207030;border:1px solid #90d090;}
+.rank-D .rank-label{background:#ececec;color:#555;border:1px solid #ccc;}
+@media(prefers-color-scheme:dark){
+  .rank-S .rank-label{background:#3a2800;color:#f0c050;border-color:#8a6020;}
+  .rank-A .rank-label{background:#280050;color:#d090ff;border-color:#7040c0;}
+  .rank-B .rank-label{background:#002848;color:#60b8ff;border-color:#3068a0;}
+  .rank-C .rank-label{background:#082808;color:#60c060;border-color:#307030;}
+  .rank-D .rank-label{background:#222;color:#aaa;border-color:#555;}
+}
+.rank-divider{flex:1;height:1px;background:var(--border);}
+/* badge list: horizontal rows */
+.badge-grid{display:flex;flex-direction:column;gap:6px;}
+.badge-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius);border:1.5px solid var(--border);background:var(--surface);transition:all .15s;position:relative;cursor:default;}
+.badge-item.unlocked{cursor:pointer;}
+.badge-item.locked{opacity:.4;}
+.badge-item.in-collection{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-light);}
+.badge-item.unlocked.rank-S{border-left:4px solid #e8c060;}
+.badge-item.unlocked.rank-A{border-left:4px solid #c8a8f0;}
+.badge-item.unlocked.rank-B{border-left:4px solid #90c8f0;}
+.badge-item.unlocked.rank-C{border-left:4px solid #90d090;}
+.badge-item.unlocked.rank-D{border-left:4px solid #ccc;}
+.badge-item.locked.rank-S{border-left:4px solid #e8c06066;}
+.badge-item.locked.rank-A{border-left:4px solid #c8a8f066;}
+.badge-item.locked.rank-B{border-left:4px solid #90c8f066;}
+.badge-item.locked.rank-C{border-left:4px solid #90d09066;}
+.badge-item.locked.rank-D{border-left:4px solid #cccccc66;}
+.badge-icon{font-size:32px;line-height:1;flex-shrink:0;width:40px;text-align:center;}
+.badge-item.locked .badge-icon{filter:grayscale(1);opacity:.5;}
+.badge-text{flex:1;min-width:0;}
+.badge-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.3;}
+.badge-cond{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.4;}
+.badge-status{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.badge-rank-pip{font-size:10px;font-weight:700;letter-spacing:.04em;}
+.rank-S .badge-rank-pip{color:#b07000;}.rank-A .badge-rank-pip{color:#6030a0;}.rank-B .badge-rank-pip{color:#1060b0;}.rank-C .badge-rank-pip{color:#207030;}.rank-D .badge-rank-pip{color:#777;}
+@media(prefers-color-scheme:dark){
+  .rank-S .badge-rank-pip{color:#f0c050;}.rank-A .badge-rank-pip{color:#d090ff;}.rank-B .badge-rank-pip{color:#60b8ff;}.rank-C .badge-rank-pip{color:#60c060;}.rank-D .badge-rank-pip{color:#aaa;}
+}
+.badge-add-hint{font-size:10px;color:var(--accent);font-weight:500;opacity:0;transition:opacity .15s;}
+.badge-item.unlocked:hover .badge-add-hint{opacity:1;}
+.badge-item.in-collection .badge-add-hint{opacity:1;}
+.badge-item.unlocked:hover{background:var(--bg);}
+.streak-display{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(120deg,var(--accent-light),var(--accent2-light));border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;}
+.streak-fire{font-size:28px;}
+.streak-num{font-size:28px;font-weight:700;color:var(--accent);}
+.streak-label{font-size:12px;color:var(--text-muted);}
+.new-badge-toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--accent);color:#fff;padding:10px 20px;border-radius:999px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:all .3s;white-space:nowrap;z-index:300;}
+.new-badge-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+/* collection */
+.collection-shelf{display:flex;flex-wrap:wrap;gap:8px;min-height:64px;padding:10px;border-radius:var(--radius);background:var(--bg);border:1.5px dashed var(--border-mid);align-items:center;}
+.collection-shelf.empty-shelf::before{content:'解放済みのバッジを下から選んで飾れます';font-size:12px;color:var(--text-hint);}
+.shelf-badge{width:52px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;border-radius:var(--radius-sm);border:1.5px solid transparent;padding:4px;position:relative;transition:transform .15s;}
+.shelf-badge:hover{transform:scale(1.08);}
+.shelf-badge .shelf-icon{font-size:28px;line-height:1;}
+.shelf-badge .shelf-name{font-size:9px;color:var(--text-muted);text-align:center;line-height:1.2;}
+.shelf-badge .shelf-remove{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#e24b4a;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .15s;}
+.shelf-badge:hover .shelf-remove{opacity:1;}
+/* profile bar */
+.profile-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.profile-btn{padding:5px 13px;border-radius:999px;border:1.5px solid var(--border);background:none;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:inherit;transition:all .12s;white-space:nowrap;}
+.profile-btn:hover{border-color:var(--border-mid);}
+.profile-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:500;}
+.profile-add-btn{width:28px;height:28px;border-radius:50%;border:1.5px dashed var(--border-mid);background:none;color:var(--text-hint);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.profile-add-btn:hover{border-color:var(--accent);color:var(--accent);}
+.profile-name-input{font-size:12px;padding:4px 8px;border-radius:999px;border:1.5px solid var(--accent);background:var(--bg);color:var(--text);font-family:inherit;outline:none;width:100px;}
+/* calendar */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;}
+.cal-title{font-size:15px;font-weight:600;min-width:100px;text-align:center;}
+.cal-nav{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;cursor:pointer;font-size:14px;color:var(--text);font-family:inherit;flex-shrink:0;}
+.cal-nav:hover{background:var(--bg);}
+.cal-view-toggle{display:flex;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px;}
+.cal-view-btn{padding:3px 10px;border:none;background:none;border-radius:4px;font-size:12px;color:var(--text-muted);cursor:pointer;font-family:inherit;}
+.cal-view-btn.active{background:var(--surface);color:var(--text);font-weight:500;border:1px solid var(--border);}
+/* month view */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dow{text-align:center;font-size:11px;color:var(--text-muted);padding:4px 0;font-weight:500;}
+.cal-cell{min-height:56px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);padding:5px 6px;cursor:pointer;transition:border-color .12s;}
+.cal-cell:hover{border-color:var(--border-mid);}
+.cal-cell.today{border-color:var(--accent);background:var(--accent-light);}
+.cal-cell.other-month{opacity:.3;}
+.cal-cell.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-light);}
+.cal-day-num{font-size:12px;font-weight:500;margin-bottom:4px;color:var(--text-muted);}
+.cal-cell.today .cal-day-num,.cal-cell.selected .cal-day-num{color:var(--accent);font-weight:700;}
+.cal-summary{display:flex;flex-direction:column;gap:2px;}
+.cal-badge{font-size:10px;font-weight:600;padding:1px 5px;border-radius:4px;text-align:center;}
+.cal-badge-count{background:var(--accent-light);color:var(--accent);}
+.cal-badge-hours{background:var(--bg);color:var(--text-muted);border:1px solid var(--border);}
+.cal-badge-rec{background:#f0eaf8;color:#6b3fa0;}
+@media(prefers-color-scheme:dark){.cal-badge-rec{background:#2a1a40;color:#c090f0;}}
+/* week view */
+.week-list{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.week-day{border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);}
+.week-day-head{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border);}
+.week-day-head.today{background:var(--accent-light);border-bottom-color:var(--accent);}
+.week-day.today{border-color:var(--accent);}
+.week-dow-label{font-size:11px;font-weight:600;color:var(--text-muted);width:20px;text-align:center;}
+.week-day-head.today .week-dow-label{color:var(--accent);}
+.week-date-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--text);flex-shrink:0;}
+.week-day-head.today .week-date-circle{background:var(--accent);color:#fff;}
+.week-day-summary{font-size:11px;color:var(--text-muted);margin-left:auto;display:flex;gap:6px;align-items:center;}
+.week-day-body{padding:6px 10px;background:var(--bg);display:flex;flex-direction:column;gap:5px;}
+.week-day-empty{padding:10px 12px;font-size:12px;color:var(--text-hint);background:var(--bg);}
+.week-task{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius-sm);border-left:3px solid transparent;}
+.week-task-name{font-size:13px;font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.week-task-chips{display:flex;gap:4px;flex-shrink:0;align-items:center;}
+.wt-ok{background:var(--surface);border-left-color:#5fa8e8;}
+.wt-near{background:#fffbf2;border-left-color:#e0a040;}
+.wt-today{background:#fff8f8;border-left-color:#e05050;}
+.wt-rec{background:#faf7ff;border-left-color:#c090f0;}
+@media(prefers-color-scheme:dark){
+  .wt-ok{background:var(--surface);border-left-color:#5fa8e8;}
+  .wt-near{background:#1e1a0e;border-left-color:#e0a040;}
+  .wt-today{background:#1e0e0e;border-left-color:#e05050;}
+  .wt-rec{background:#140e1e;border-left-color:#c090f0;}
+}
+.week-empty-week{font-size:13px;color:var(--text-muted);padding:20px 0;text-align:center;}
+/* detail panel */
+.cal-detail{margin-top:1rem;}
+.cal-detail-title{font-size:12px;color:var(--text-muted);margin-bottom:8px;font-weight:500;}
+.cal-detail-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.cal-detail-item:last-child{border-bottom:none;}
+/* work hours timeline */
+.timeline-wrap{position:relative;margin-top:4px;}
+.timeline-axis{display:flex;flex-direction:column;gap:0;}
+.timeline-hour{display:flex;align-items:flex-start;min-height:36px;position:relative;}
+.timeline-hour-label{width:36px;font-size:10px;color:var(--text-hint);flex-shrink:0;padding-top:0;line-height:1;margin-top:-5px;}
+.timeline-hour-line{flex:1;border-top:1px solid var(--border);position:relative;min-height:36px;}
+.timeline-hour-line.half-mark::before{content:'';position:absolute;top:50%;left:0;right:0;border-top:1px dashed var(--border);opacity:.5;}
+.work-block{position:absolute;left:0;right:4px;border-radius:4px;background:var(--accent-light);border:1px solid var(--accent);opacity:.6;pointer-events:none;}
+.task-block{position:absolute;left:0;right:4px;border-radius:4px;font-size:10px;padding:2px 5px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;line-height:1.4;font-weight:500;}
+.tb-ok{background:#e6f1fb;color:#185fa5;border:1px solid #b8d8f8;}
+.tb-near{background:#faeeda;color:#854f0b;border:1px solid #f0d0a0;}
+.tb-today{background:#fcebeb;color:#a32d2d;border:1px solid #f0b8b8;}
+@media(prefers-color-scheme:dark){
+  .tb-ok{background:#102040;color:#5fa8e8;border-color:#1a3860;}
+  .tb-near{background:#2e2010;color:#e0a040;border-color:#4e3820;}
+  .tb-today{background:#2e1010;color:#e05050;border-color:#4e2020;}
+}
+.now-line{position:absolute;left:36px;right:0;height:2px;background:var(--accent);z-index:10;border-radius:1px;}
+.now-line::before{content:'';position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--accent);}
+.wh-summary{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+.wh-time-inputs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.wh-time-sel{font-size:12px;padding:4px 7px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;}
+/* schedule settings */
+.dow-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px;}
+.dow-head{text-align:center;font-size:11px;color:var(--text-muted);font-weight:500;padding:4px 0;}
+.dow-cell{border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 4px;background:var(--surface);}
+.dow-cell-name{text-align:center;font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;}
+.dow-cell select{width:100%;font-size:10px;padding:2px 2px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;}
+.dow-cell.off{opacity:.45;}
+.dow-toggle{display:block;text-align:center;font-size:10px;color:var(--text-hint);cursor:pointer;margin-top:4px;}
+/* tab order settings */
+.tab-order-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);margin-bottom:6px;}
+.tab-order-item:last-child{margin-bottom:0;}
+.tab-order-num{font-size:11px;color:var(--text-hint);width:18px;text-align:center;flex-shrink:0;font-weight:700;}
+.tab-order-name{font-size:13px;font-weight:600;flex:1;color:var(--text);}
+.tab-order-btns{display:flex;gap:6px;flex-shrink:0;}
+/* goal task card */
+.goal-card{background:linear-gradient(135deg,var(--accent-light),var(--accent2-light));border:1.5px solid var(--accent);border-radius:var(--radius);padding:1.1rem 1.1rem 1.15rem;margin-top:16px;}
+.goal-card-header{display:flex;align-items:center;gap:7px;margin-bottom:2px;}
+.goal-card-icon{font-size:17px;line-height:1;}
+.goal-card-title{font-size:14px;font-weight:800;color:var(--text);letter-spacing:.01em;}
+.goal-card-desc{font-size:11px;color:var(--text-muted);margin:3px 0 12px;line-height:1.6;}
+.goal-empty{font-size:12px;color:var(--text-hint);padding:14px 0;text-align:center;background:var(--surface);border-radius:var(--radius-sm);border:1.5px dashed var(--border-mid);}
+.goal-item{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:var(--radius-sm);padding:10px 11px;margin-bottom:7px;box-shadow:0 2px 8px rgba(0,0,0,.05);border:1px solid var(--border);}
+.goal-item:last-child{margin-bottom:0;}
+.goal-item.rank1{border-left:4px solid #e8c060;}
+.goal-item.rank2{border-left:4px solid #c8c8d8;}
+.goal-item.rank3{border-left:4px solid #d8a878;}
+.goal-item.rank-extra{border-left:4px solid var(--accent);}
+.goal-item.rank-none{border-left:4px solid var(--border-mid);}
+.goal-medal{font-size:22px;width:28px;text-align:center;flex-shrink:0;line-height:1;}
+.goal-medal.rank-num{font-size:13px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;margin:1px;}
+.goal-medal.no-rank{font-size:11px;font-weight:700;color:var(--text-hint);background:var(--bg);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:3px;}
+.goal-body{flex:1;min-width:0;}
+.goal-name{font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.3;}
+.goal-chips{display:flex;gap:5px;flex-wrap:wrap;}
+.goal-remove{background:none;border:none;color:var(--text-hint);cursor:pointer;font-size:17px;padding:2px 5px;flex-shrink:0;border-radius:50%;line-height:1;}
+.goal-remove:hover{color:#e24b4a;background:var(--bg);}
+.goal-add-title{font-size:11px;color:var(--text-muted);margin-top:14px;margin-bottom:7px;font-weight:600;}
+.goal-add-list{display:flex;flex-direction:column;}
+.goal-add-item{display:flex;align-items:center;gap:10px;background:var(--surface);border:1.5px dashed var(--border-mid);border-radius:var(--radius-sm);padding:9px 11px;margin-bottom:6px;cursor:pointer;transition:all .12s;width:100%;text-align:left;font-family:inherit;color:var(--text);}
+.goal-add-item:last-child{margin-bottom:0;}
+.goal-add-item:hover{border-color:var(--accent);border-style:solid;background:var(--accent-light);}
+.goal-add-icon{font-size:15px;width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--text-hint);border:1.5px dashed var(--border-mid);transition:all .12s;}
+.goal-add-item:hover .goal-add-icon{color:var(--accent);border-color:var(--accent);border-style:solid;}
+.goal-add-body{flex:1;min-width:0;}
+.goal-add-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.3;}
+.goal-add-chips{display:flex;gap:5px;flex-wrap:wrap;}
+.goal-add-none{font-size:12px;color:var(--text-hint);}
+/* point history */
+.pth-day{font-size:11px;color:var(--text-muted);font-weight:600;margin:10px 0 4px;letter-spacing:.03em;}
+.pth-day:first-child{margin-top:0;}
+.pth-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.pth-item:last-child{border-bottom:none;}
+.pth-name{flex:1;min-width:0;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pth-pts{flex-shrink:0;font-weight:700;color:var(--accent);font-size:12px;}
+.pth-bonus .pth-pts{color:var(--accent2);}
+.pth-empty{font-size:12px;color:var(--text-hint);padding:14px 0;text-align:center;}
+/* keyboard focus visibility */
+[role="checkbox"]:focus-visible,[role="button"]:focus-visible,.done-chk:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+</style>
+?ts=1783549245179&amp;type=content-script&amp;dmn=file.notion.com&amp;url=https%3A%2F%2Ffile.notion.com%2Ff%2Ff%2Ff7ed6944-4ca0-493a-bbd9-cb02a7d04c94%2Fced994ff-3fbb-4c6a-9a2c-104955362ae2%2F%25E3%2582%25AD%25E3%2583%25A3%25E3%2583%2591%25E7%25AE%25A1%25E7%2590%2586%25E3%2582%25B2%25E3%2583%25BC%25E3%2583%25A0%25EF%25BC%2596.html%3Ftable%3Dblock%26id%3D3917a409-73ec-8065-907a-c369709279ef%26spaceId%3Df7ed6944-4ca0-493a-bbd9-cb02a7d04c94%26expirationTimestamp%3D1783641600000%26signature%3D1H6WFBi0JGpVaWFmU78Y6rlKspE7TNVBFCcWvM7-0sg%26download%3Dtrue%26downloadName%3D%25E3%2582%25AD%25E3%2583%25A3%25E3%2583%2591%25E7%25AE%25A1%25E7%2590%2586%25E3%2582%25B2%25E3%2583%25BC%25E3%2583%25A0%25EF%25BC%2596.html&amp;app=chrome.exe&amp;css=3&amp;js=1&amp;rel=1&amp;rji=1&amp;sbe=1"></script>?ts=1783549245179&amp;name=AdGuard%20Extra&amp;name=AdGuard%20Popup%20Blocker&amp;type=user-script"></script></head>
+<body>
+<div class="app">
+
+<header>
+  <h1>キャパ管理</h1>
+  <span id="today-date"></span>
+</header>
+
+<!-- プロフィールバー -->
+<div id="profile-bar" style="margin-bottom:1rem;"></div>
+
+<div class="tabs" id="tabs-bar"></div>
+
+<!-- 今日 -->
+<div class="pane active" id="pane-today">
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div class="field-label" style="margin-bottom:0;">今日の稼働時間</div>
+      <button class="btn-secondary" onclick="addTodayBlock()" style="padding:3px 10px;font-size:12px;">＋ブロック追加</button>
+    </div>
+    <div id="today-blocks-list"></div>
+    <div id="wh-summary" style="margin-top:8px;"></div>
+    <div class="timeline-wrap" id="timeline-wrap" style="margin-top:12px;"></div>
+  </div>
+  <div class="card">
+    <div class="field-label">今日のエネルギーレベル</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:11px;color:var(--text-hint);flex-shrink:0;">低</span>
+      <div class="energy-grid" style="grid-template-columns:repeat(10,1fr);flex:1;">
+        <button class="ebtn" id="eb1"  onclick="setE(1)"><strong>1</strong></button>
+        <button class="ebtn" id="eb2"  onclick="setE(2)"><strong>2</strong></button>
+        <button class="ebtn" id="eb3"  onclick="setE(3)"><strong>3</strong></button>
+        <button class="ebtn" id="eb4"  onclick="setE(4)"><strong>4</strong></button>
+        <button class="ebtn" id="eb5"  onclick="setE(5)"><strong>5</strong></button>
+        <button class="ebtn" id="eb6"  onclick="setE(6)"><strong>6</strong></button>
+        <button class="ebtn" id="eb7"  onclick="setE(7)"><strong>7</strong></button>
+        <button class="ebtn" id="eb8"  onclick="setE(8)"><strong>8</strong></button>
+        <button class="ebtn" id="eb9"  onclick="setE(9)"><strong>9</strong></button>
+        <button class="ebtn" id="eb10" onclick="setE(10)"><strong>10</strong></button>
+      </div>
+      <span style="font-size:11px;color:var(--text-hint);flex-shrink:0;">高</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="field-label">今日やるタスクを選ぶ</div>
+    <div class="empty" id="today-tlist-empty">タスクが登録されていません</div>
+    <div id="today-tlist"></div>
+    <div class="selected-count" id="selected-count" style="display:none;"></div>
+    <div id="goal-card" class="goal-card">
+      <div class="goal-card-header">
+        <span class="goal-card-icon">🎯</span>
+        <span class="goal-card-title">今日の目標タスク</span>
+      </div>
+      <div class="goal-card-desc">今日やるタスクを選ぶと、優先順位1〜3位が自動で入ります（1位+3pt／2位+2pt／3位+1pt）。エネルギーレベルを設定すると、より正確な順位に並べ替わります。追加・削除も可能です。</div>
+      <div class="goal-empty" id="goal-list-empty">まだ目標タスクがありません</div>
+      <div id="goal-list"></div>
+      <div class="goal-add-title">タップして目標タスクに追加:</div>
+      <div id="goal-add-list" class="goal-add-list"></div>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="goResult()">優先順位を出す →</button>
+</div>
+
+<!-- 実績 -->
+<div class="pane" id="pane-achieve">
+  <div class="card">
+    <div class="streak-display">
+      <span class="streak-fire">🔥</span>
+      <div>
+        <div style="display:flex;align-items:baseline;gap:4px;">
+          <span class="streak-num" id="ach-streak">0</span>
+          <span class="streak-label">日連続</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-hint);">最高 <span id="ach-best-streak">0</span>日</div>
+      </div>
+    </div>
+    <div class="ach-stat-grid">
+      <div class="ach-stat"><div class="ach-stat-val" id="ach-level">1</div><div class="ach-stat-label">レベル</div></div>
+      <div class="ach-stat"><div class="ach-stat-val" id="ach-points">0</div><div class="ach-stat-label">累計PT</div></div>
+      <div class="ach-stat"><div class="ach-stat-val" id="ach-total-done">0</div><div class="ach-stat-label">完了タスク数</div></div>
+    </div>
+    <div style="margin-bottom:4px;display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+      <span id="ach-level-label">Lv.1</span><span id="ach-next-pt"></span>
+    </div>
+    <div class="level-bar-wrap"><div class="level-bar-fill" id="ach-level-bar" style="width:0%"></div></div>
+  </div>
+  <div class="card">
+    <div class="field-label" style="margin-bottom:8px;">マイコレクション</div>
+    <div class="collection-shelf" id="collection-shelf"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="field-label" style="margin-bottom:0;">バッジ一覧</div>
+      <span style="font-size:11px;color:var(--text-muted);">解放済みをタップでコレクションに追加</span>
+    </div>
+    <div class="badge-grid" id="badge-grid"></div>
+  </div>
+  <div class="card">
+    <div class="field-label" style="margin-bottom:8px;">ポイント履歴</div>
+    <div id="pt-history"></div>
+  </div>
+</div>
+
+<!-- 完了ポップアップ -->
+<div class="ach-popup" id="ach-popup" onclick="closeAchPopup()">
+  <div class="ach-popup-card" onclick="event.stopPropagation()">
+    <div class="ach-popup-icon" id="popup-icon">🎉</div>
+    <div class="ach-popup-title" id="popup-title">全タスク完了！</div>
+    <div class="ach-popup-sub" id="popup-sub"></div>
+    <button class="btn-primary" onclick="closeAchPopup()" style="margin-top:0;">閉じる</button>
+  </div>
+</div>
+<div class="new-badge-toast" id="new-badge-toast"></div>
+
+<!-- 設定 -->
+<div class="pane" id="pane-settings">
+  <div class="card">
+    <div class="field-label">タブの並び順</div>
+    <p style="font-size:11px;color:var(--text-hint);margin-bottom:12px;">▲▼ボタンで上部メニューの表示順を入れ替えられます</p>
+    <div id="tab-order-list"></div>
+  </div>
+  <div class="card">
+    <div class="field-label">曜日ごとの稼働時間</div>
+    <p style="font-size:11px;color:var(--text-hint);margin-bottom:12px;">ブロックを複数追加するとサンドイッチ勤務に対応できます</p>
+    <div id="dow-schedule-grid"></div>
+  </div>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="field-label" style="margin-bottom:0;">例外日</div>
+      <button onclick="addException()" class="btn-secondary" style="padding:3px 10px;font-size:12px;">＋追加</button>
+    </div>
+    <p style="font-size:11px;color:var(--text-hint);margin-bottom:12px;">特定の日付だけ曜日設定を上書きします</p>
+    <div id="exc-list"><div class="empty">例外日はありません</div></div>
+  </div>
+  <div class="card">
+    <div class="field-label">バックアップ</div>
+    <p style="font-size:11px;color:var(--text-hint);margin-bottom:12px;">全ページのデータをファイルに書き出し／読み込みできます。端末変更やキャッシュ削除に備えて定期的に保存してください。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-secondary" onclick="exportData()">📥 エクスポート</button>
+      <button class="btn-secondary" onclick="document.getElementById('import-file').click()">📤 インポート</button>
+      <input type="file" id="import-file" accept="application/json" style="display:none;" onchange="importData(event)">
+    </div>
+  </div>
+</div>
+
+<!-- タスク -->
+<div class="pane" id="pane-tasks">
+  <div class="card">
+    <div class="field-label">タスクを追加</div>
+    <input type="text" id="tname" placeholder="タスク名" style="margin-bottom:10px;">
+    <div class="input-row" style="margin-bottom:8px;">
+      <span style="font-size:13px;color:var(--text-muted);">所要時間</span>
+      <input type="number" id="thours" value="1" min="0.25" max="8" step="0.25">
+      <span style="font-size:13px;color:var(--text-muted);">h</span>
+      <span style="font-size:13px;color:var(--text-muted);margin-left:4px;">消費</span>
+      <select id="tenergy">
+        <option value="1">1 低</option><option value="2">2</option><option value="3">3</option>
+        <option value="4">4</option><option value="5" selected>5</option><option value="6">6</option>
+        <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+        <option value="10">10 高</option>
+      </select>
+      <span style="font-size:13px;color:var(--text-muted);margin-left:4px;">重要度</span>
+      <select id="tprio">
+        <option value="1">1 低</option><option value="2">2</option><option value="3" selected>3</option>
+        <option value="4">4</option><option value="5">5 高</option>
+      </select>
+    </div>
+    <p style="font-size:11px;color:var(--text-hint);margin-bottom:8px;line-height:1.5;">「消費」= そのタスクで使う気力（高いほど疲れる）。「重要度」= 優先したい度合い（高いほど大事）。どちらも数値が大きいほど優先順位で上位に来やすくなります。</p>
+    <div class="input-row" style="margin-bottom:4px;">
+      <span style="font-size:13px;color:var(--text-muted);">ポイント</span>
+      <input type="number" id="tcustompts" placeholder="自動" min="0" max="30" step="1" style="width:80px;">
+      <span style="font-size:12px;color:var(--text-hint);">空欄で自動計算</span>
+    </div>
+    <div class="input-row" style="margin-bottom:4px;">
+      <span style="font-size:13px;color:var(--text-muted);">期限種別</span>
+      <select id="tdeadline-type" onchange="onDeadlineTypeChange()">
+        <option value="none">なし</option>
+        <option value="date">特定の日付</option>
+        <option value="weekly">毎週◯曜日</option>
+        <option value="monthly">毎月◯日</option>
+      </select>
+    </div>
+    <div id="tdeadline-date-row" class="input-row" style="display:none;margin-bottom:4px;">
+      <span style="font-size:13px;color:var(--text-muted);">日付</span>
+      <input type="date" id="tdeadline-date" style="font-size:13px;padding:5px 8px;">
+      <select id="tdeadline-time"><option value="">時刻なし</option></select>
+    </div>
+    <div id="tdeadline-weekly-row" class="input-row" style="display:none;margin-bottom:4px;">
+      <span style="font-size:13px;color:var(--text-muted);">曜日</span>
+      <select id="tdeadline-dow">
+        <option value="0">日曜日</option><option value="1">月曜日</option><option value="2">火曜日</option>
+        <option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
+      </select>
+      <select id="tdeadline-time-w"><option value="">時刻なし</option></select>
+    </div>
+    <div id="tdeadline-monthly-row" class="input-row" style="display:none;margin-bottom:4px;">
+      <span style="font-size:13px;color:var(--text-muted);">毎月</span>
+      <select id="tdeadline-dom">
+        <option value="1">1日</option><option value="2">2日</option><option value="3">3日</option><option value="4">4日</option><option value="5">5日</option><option value="6">6日</option><option value="7">7日</option><option value="8">8日</option><option value="9">9日</option><option value="10">10日</option><option value="11">11日</option><option value="12">12日</option><option value="13">13日</option><option value="14">14日</option><option value="15">15日</option><option value="16">16日</option><option value="17">17日</option><option value="18">18日</option><option value="19">19日</option><option value="20">20日</option><option value="21">21日</option><option value="22">22日</option><option value="23">23日</option><option value="24">24日</option><option value="25">25日</option><option value="26">26日</option><option value="27">27日</option><option value="28">28日</option><option value="29">29日</option><option value="30">30日</option><option value="31">末日</option>
+      </select>
+      <select id="tdeadline-time-m"><option value="">時刻なし</option></select>
+    </div>
+    <div style="margin-top:10px;">
+      <button class="btn-secondary" onclick="addTask()">追加</button>
+    </div>
+  </div>
+  <div class="card" style="padding:10px 12px;">
+    <div class="field-label">登録済みタスク</div>
+    <div class="empty" id="tlist-empty">タスクがまだありません</div>
+    <div id="tlist"></div>
+  </div>
+</div>
+
+<!-- カレンダー -->
+<div class="pane" id="pane-cal">
+  <div class="card">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calMove(-1)">‹</button>
+      <span class="cal-title" id="cal-title"></span>
+      <button class="cal-nav" onclick="calMove(1)">›</button>
+      <div class="cal-view-toggle">
+        <button class="cal-view-btn active" id="vbtn-month" onclick="setCalView('month')">月</button>
+        <button class="cal-view-btn" id="vbtn-week" onclick="setCalView('week')">週</button>
+      </div>
+    </div>
+    <!-- month -->
+    <div id="cal-month-view">
+      <div class="cal-grid" id="cal-dow-row"></div>
+      <div class="cal-grid" style="margin-top:2px;" id="cal-body"></div>
+    </div>
+    <!-- week -->
+    <div id="cal-week-view" style="display:none;">
+      <div class="week-list" id="week-body"></div>
+    </div>
+  </div>
+  <div class="cal-detail" id="cal-detail" style="display:none;">
+    <div class="card">
+      <div class="cal-detail-title" id="cal-detail-title"></div>
+      <div id="cal-detail-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 優先順位 -->
+<div class="pane" id="pane-result">
+  <div id="result-body" style="display:none;">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">利用可能</div><div class="stat-val" id="r-avail">—</div></div>
+      <div class="stat-card"><div class="stat-label">タスク計</div><div class="stat-val" id="r-total">—</div></div>
+      <div class="stat-card"><div class="stat-label">エネルギー</div><div class="stat-val" id="r-energy">—</div></div>
+    </div>
+    <div class="card" id="ranked"></div>
+    <div id="ai-box"></div>
+    <button class="btn-primary" onclick="getAI()" id="ai-btn" style="margin-top:10px;">AIにアドバイスをもらう →</button>
+    <p style="font-size:11px;color:var(--text-hint);margin-top:6px;line-height:1.5;">※AIアドバイスの利用にはインターネット接続が必要です。</p>
+  </div>
+  <div class="empty" id="result-empty">「今日」タブで時間とエネルギーを入力してください</div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const PROFILES_KEY = 'cap_profiles_v1';   // [{id,name}]
+const ACTIVE_KEY   = 'cap_active_v1';     // active profile id
+const ECHIP = ['','chip-e1','chip-e2','chip-e2','chip-e3','chip-e3','chip-e3','chip-e4','chip-e4','chip-e5','chip-e5'];
+const PCHIP = {1:'chip-pl',2:'chip-pl',3:'chip-pm',4:'chip-ph',5:'chip-ph'};
+const PLABEL = {1:'重要度1',2:'重要度2',3:'重要度3',4:'重要度4',5:'重要度5'};
+const WDAYS = ['日','月','火','水','木','金','土'];
+const DEFAULT_SCHED = [
+  [],
+  [{s:9*60,e:18*60}],[{s:9*60,e:18*60}],[{s:9*60,e:18*60}],[{s:9*60,e:18*60}],[{s:9*60,e:18*60}],
+  [],
+];
+
+let tasks=[], todayE=0, taskCounts={}, doneCounts={}, awardStack={}, resultDone={}, weeklyDone={}, goalBonusWeek={};
+const TAB_LABELS={today:'今日',tasks:'タスク',cal:'カレンダー',result:'優先順位',achieve:'実績',settings:'設定'};
+const DEFAULT_TAB_ORDER=['today','tasks','cal','result','achieve','settings'];
+let tabOrder=[...DEFAULT_TAB_ORDER];
+let currentTab='today';
+let goalRank={}, goalManual={}, goalExcluded={}; // 目標タスク: 自動トップ3ランク／手動追加／手動除外
+function getWeekKey(d){
+  // 月曜始まりの週の開始日(YYYY-MM-DD)をキーにする
+  const x=new Date(d); x.setHours(0,0,0,0);
+  const dow=(x.getDay()+6)%7; // 月=0
+  x.setDate(x.getDate()-dow);
+  return fmtDate(x);
+}
+function isDoneThisWeek(id){ return weeklyDone[id]===getWeekKey(new Date()); }
+function markDoneThisWeek(id){ weeklyDone[id]=getWeekKey(new Date()); saveWeeklyDone(); }
+function saveWeeklyDone(){ try{ localStorage.setItem(storeKey('weeklyDone'),JSON.stringify(weeklyDone)); }catch(e){} }
+// 優先順位ボーナス（1〜3位＋pt）は同じタスクにつき週1回のみ付与する
+function goalBonusClaimedThisWeek(id){ return goalBonusWeek[id]===getWeekKey(new Date()); }
+function saveGoalBonusWeek(){ try{ localStorage.setItem(storeKey('goalBonusWeek'),JSON.stringify(goalBonusWeek)); }catch(e){} }
+let calYear, calMonth, calSelected=null;
+let calDone={};
+let schedule = DEFAULT_SCHED.map(blocks=>blocks.map(b=>({...b})));
+let exceptions = []; // [{date:'YYYY-MM-DD', blocks:[{s,e}]}]
+let todayBlocks = [];
+let todayBlocksEdited = false; // 「今日」タブで稼働時間を手動編集したか
+let achieve = null;
+let profiles = [];    // [{id, name}]
+let activeProfileId = null;
+
+function storeKey(suffix){ return `cap_${activeProfileId}_${suffix}`; }
+
+/* ── Profile management ── */
+function loadProfiles(){
+  try{ profiles=JSON.parse(localStorage.getItem(PROFILES_KEY)||'null')||[]; }catch(e){ profiles=[]; }
+  try{ activeProfileId=localStorage.getItem(ACTIVE_KEY)||null; }catch(e){}
+  if(!profiles.length){
+    const id='p'+Date.now();
+    profiles=[{id,name:'自分'}];
+    activeProfileId=id;
+    saveProfiles();
+  }
+  if(!profiles.find(p=>p.id===activeProfileId)) activeProfileId=profiles[0].id;
+}
+function saveProfiles(){
+  try{ localStorage.setItem(PROFILES_KEY,JSON.stringify(profiles)); }catch(e){}
+  try{ localStorage.setItem(ACTIVE_KEY,activeProfileId); }catch(e){}
+}
+function switchProfile(id){
+  activeProfileId=id;
+  saveProfiles();
+  loadProfileData();
+  renderProfileBar();
+  renderTabs();
+  renderAll();
+}
+function addProfile(){
+  const bar=document.getElementById('profile-bar');
+  if(bar.querySelector('.profile-name-input'))return; // already open
+  const wrap=document.createElement('span');
+  wrap.style.display='flex';wrap.style.alignItems='center';wrap.style.gap='4px';
+  wrap.innerHTML=`<input class="profile-name-input" id="new-profile-input" placeholder="ページ名" maxlength="12" autofocus>
+    <button onclick="confirmAddProfile()" style="font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;">追加</button>
+    <button onclick="renderProfileBar()" style="font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;">×</button>`;
+  bar.querySelector('.profile-bar').appendChild(wrap);
+  setTimeout(()=>document.getElementById('new-profile-input')?.focus(),50);
+  document.getElementById('new-profile-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter')confirmAddProfile();
+    if(e.key==='Escape')renderProfileBar();
+  });
+}
+function confirmAddProfile(){
+  const input=document.getElementById('new-profile-input');
+  const name=(input?.value||'').trim();
+  if(!name){toast('ページ名を入力してください');input?.focus();return;}
+  const id='p'+Date.now();
+  profiles.push({id,name});
+  activeProfileId=id;
+  saveProfiles();
+  loadProfileData();
+  renderProfileBar();
+  renderTabs();
+  renderAll();
+  toast(`「${name}」を作成しました`);
+}
+function renameProfile(id){
+  const p=profiles.find(p=>p.id===id); if(!p)return;
+  const btn=document.querySelector(`.profile-btn[onclick="switchProfile('${id}')"]`);
+  if(!btn)return;
+  const orig=btn.outerHTML;
+  btn.replaceWith(Object.assign(document.createElement('span'),{
+    innerHTML:`<input class="profile-name-input" id="rename-input-${id}" value="${p.name}" maxlength="12">
+      <button onclick="confirmRename('${id}')" style="font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;">OK</button>`,
+    style:'display:flex;align-items:center;gap:4px;'
+  }));
+  const inp=document.getElementById(`rename-input-${id}`);
+  inp?.focus(); inp?.select();
+  inp?.addEventListener('keydown',e=>{if(e.key==='Enter')confirmRename(id);if(e.key==='Escape')renderProfileBar();});
+}
+function confirmRename(id){
+  const input=document.getElementById(`rename-input-${id}`);
+  const name=(input?.value||'').trim();
+  if(!name){toast('名前を入力してください');return;}
+  const p=profiles.find(p=>p.id===id); if(!p)return;
+  p.name=name;
+  saveProfiles();
+  renderProfileBar();
+  toast('名前を変更しました');
+}
+function deleteProfile(id){
+  if(profiles.length<=1){toast('最後のページは削除できません');return;}
+  const p=profiles.find(p=>p.id===id); if(!p)return;
+  const bar=document.getElementById('profile-bar');
+  if(bar.querySelector('.del-confirm'))return;
+  const wrap=Object.assign(document.createElement('span'),{
+    className:'del-confirm',
+    innerHTML:`<span style="font-size:12px;color:var(--text-muted);">「${p.name}」を削除しますか？</span>
+      <button onclick="confirmDelete('${id}')" style="font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid #e24b4a;background:#e24b4a;color:#fff;cursor:pointer;">削除</button>
+      <button onclick="renderProfileBar()" style="font-size:11px;padding:2px 9px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;">キャンセル</button>`,
+    style:'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;'
+  });
+  bar.querySelector('.profile-bar').appendChild(wrap);
+}
+function confirmDelete(id){
+  if(profiles.length<=1){toast('最後のページは削除できません');return;}
+  const p=profiles.find(p=>p.id===id);
+  profiles=profiles.filter(p=>p.id!==id);
+  if(activeProfileId===id) activeProfileId=profiles[0].id;
+  saveProfiles();
+  loadProfileData();
+  renderProfileBar();
+  renderTabs();
+  renderAll();
+  toast(`「${p?.name}」を削除しました`);
+}
+function renderProfileBar(){
+  const bar=document.getElementById('profile-bar');
+  if(!bar)return;
+  bar.innerHTML=`<div class="profile-bar">
+    ${profiles.map(p=>`
+      <button class="profile-btn${p.id===activeProfileId?' active':''}"
+        onclick="switchProfile('${p.id}')"
+        ondblclick="renameProfile('${p.id}')"
+        title="ダブルクリックで名前変更">${p.name}</button>
+    `).join('')}
+    ${profiles.length<8?`<button class="profile-add-btn" onclick="addProfile()" title="ページを追加">＋</button>`:''}
+    ${profiles.length>1&&activeProfileId?`<button onclick="deleteProfile('${activeProfileId}')" style="font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--text-hint);cursor:pointer;margin-left:auto;">削除</button>`:''}
+  </div>`;
+}
+
+/* ── Init ── */
+function init() {
+  const now=new Date();
+  document.getElementById('today-date').textContent=now.toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'short'});
+  calYear=now.getFullYear(); calMonth=now.getMonth();
+  loadProfiles();
+  renderProfileBar();
+  loadProfileData();
+  if(!achieve) achieve=defaultAchieve();
+  buildTimeSelects();
+  applyTodayDefaults();
+  renderTabs();
+  renderSettings();
+  if(todayE>0)[1,2,3,4,5,6,7,8,9,10].forEach(i=>document.getElementById('eb'+i)?.classList.toggle('active',i===todayE));
+  renderAll();
+}
+function loadProfileData(){
+  try{ tasks=JSON.parse(localStorage.getItem(storeKey('tasks'))||'[]'); }catch(e){ tasks=[]; }
+  try{
+    const to=JSON.parse(localStorage.getItem(storeKey('tabOrder'))||'null');
+    if(to&&Array.isArray(to)){
+      const valid=to.filter(id=>DEFAULT_TAB_ORDER.includes(id));
+      const missing=DEFAULT_TAB_ORDER.filter(id=>!valid.includes(id));
+      tabOrder=[...new Set([...valid,...missing])];
+    } else {
+      tabOrder=[...DEFAULT_TAB_ORDER];
+    }
+  }catch(e){ tabOrder=[...DEFAULT_TAB_ORDER]; }
+  try{
+    const s=JSON.parse(localStorage.getItem(storeKey('sched'))||'null');
+    if(s&&Array.isArray(s)) schedule=s;
+    else schedule=DEFAULT_SCHED.map(blocks=>blocks.map(b=>({...b})));
+  }catch(e){ schedule=DEFAULT_SCHED.map(blocks=>blocks.map(b=>({...b}))); }
+  try{
+    const ex=JSON.parse(localStorage.getItem(storeKey('exc'))||'null');
+    if(ex&&Array.isArray(ex)) exceptions=ex;
+    else exceptions=[];
+  }catch(e){ exceptions=[]; }
+  taskCounts={}; doneCounts={}; awardStack={}; resultDone={}; calDone={}; todayE=0;
+  goalRank={}; goalManual={}; goalExcluded={};
+  try{
+    const wd=JSON.parse(localStorage.getItem(storeKey('weeklyDone'))||'{}');
+    weeklyDone=(wd&&typeof wd==='object')?wd:{};
+  }catch(e){ weeklyDone={}; }
+  try{
+    const gb=JSON.parse(localStorage.getItem(storeKey('goalBonusWeek'))||'{}');
+    goalBonusWeek=(gb&&typeof gb==='object')?gb:{};
+  }catch(e){ goalBonusWeek={}; }
+  // 旧バージョンでは「回数指定タスク」を1回チェックした時点で今週完了扱いにしてしまう不具合があり、
+  // その際に保存された不整合なデータが残っている可能性があるため、一度だけクリアする
+  try{
+    if(!localStorage.getItem(storeKey('weeklyDoneMigrated_v1'))){
+      weeklyDone={};
+      saveWeeklyDone();
+      localStorage.setItem(storeKey('weeklyDoneMigrated_v1'),'1');
+    }
+  }catch(e){}
+  try{
+    const a=JSON.parse(localStorage.getItem(storeKey('ach'))||'null');
+    if(a) achieve=a;
+    else achieve=defaultAchieve();
+  }catch(e){ achieve=defaultAchieve(); }
+  // ポイント・実績データを一度だけリセット
+  try{
+    if(!localStorage.getItem(storeKey('achieveResetMigrated_v1'))){
+      achieve=defaultAchieve();
+      saveAchieve();
+      localStorage.setItem(storeKey('achieveResetMigrated_v1'),'1');
+    }
+  }catch(e){}
+  loadDailyState();
+}
+function save(){ try{ localStorage.setItem(storeKey('tasks'),JSON.stringify(tasks)); }catch(e){} }
+// 当日のタスク選択・完了状態を保存/復元する（リロードで消えないように）
+function saveDailyState(){
+  try{
+    localStorage.setItem(storeKey('daily'),JSON.stringify({
+      date:todayDateStr(), taskCounts, doneCounts, awardStack, todayE
+    }));
+  }catch(e){}
+}
+function loadDailyState(){
+  try{
+    const d=JSON.parse(localStorage.getItem(storeKey('daily'))||'null');
+    if(d&&d.date===todayDateStr()){
+      taskCounts=d.taskCounts||{}; doneCounts=d.doneCounts||{};
+      awardStack=d.awardStack||{}; todayE=d.todayE||0;
+    }
+  }catch(e){}
+}
+function saveTabOrder(){ try{ localStorage.setItem(storeKey('tabOrder'),JSON.stringify(tabOrder)); }catch(e){} }
+function saveSched(){ try{ localStorage.setItem(storeKey('sched'),JSON.stringify(schedule)); }catch(e){} }
+function saveExc(){ try{ localStorage.setItem(storeKey('exc'),JSON.stringify(exceptions)); }catch(e){} }
+function saveAchieve(){ try{ localStorage.setItem(storeKey('ach'),JSON.stringify(achieve)); }catch(e){} }
+function renderAll(){ renderTasks(); renderTodayList(); renderTimeline(); }
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2000);}
+// キーボード操作: Enter/Spaceでクリック相当。role="button"なdiv要素に付与する。
+function kbClick(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); e.currentTarget.click(); } }
+
+function showTab(name){
+  currentTab=name;
+  ['today','tasks','cal','result','achieve','settings'].forEach(t=>document.getElementById('pane-'+t).classList.toggle('active',t===name));
+  document.querySelectorAll('.tabs .tab').forEach(el=>el.classList.toggle('active',el.dataset.tab===name));
+  if(name==='today'){renderTodayList();renderTimeline();}
+  if(name==='tasks'){renderTasks();}
+  if(name==='cal') renderCal();
+  if(name==='result') renderResult();
+  if(name==='achieve') renderAchieve();
+  if(name==='settings') renderSettings();
+}
+function renderTabs(){
+  const el=document.getElementById('tabs-bar');
+  if(!el)return;
+  el.innerHTML=tabOrder.map(id=>`<button class="tab${id===currentTab?' active':''}" data-tab="${id}" onclick="showTab('${id}')">${TAB_LABELS[id]}</button>`).join('');
+}
+function moveTab(id,delta){
+  const idx=tabOrder.indexOf(id);
+  const newIdx=idx+delta;
+  if(idx<0||newIdx<0||newIdx>=tabOrder.length)return;
+  [tabOrder[idx],tabOrder[newIdx]]=[tabOrder[newIdx],tabOrder[idx]];
+  saveTabOrder();
+  renderTabs();
+  renderTabOrderSettings();
+  toast('タブの順番を変更しました');
+}
+function renderTabOrderSettings(){
+  const el=document.getElementById('tab-order-list');
+  if(!el)return;
+  el.innerHTML=tabOrder.map((id,i)=>`
+    <div class="tab-order-item">
+      <span class="tab-order-num">${i+1}</span>
+      <span class="tab-order-name">${TAB_LABELS[id]}</span>
+      <div class="tab-order-btns">
+        <button class="counter-btn" onclick="moveTab('${id}',-1)"${i===0?' disabled':''}>▲</button>
+        <button class="counter-btn" onclick="moveTab('${id}',1)"${i===tabOrder.length-1?' disabled':''}>▼</button>
+      </div>
+    </div>`).join('');
+}
+function setE(v){todayE=v;[1,2,3,4,5,6,7,8,9,10].forEach(i=>document.getElementById('eb'+i)?.classList.toggle('active',i===v));saveDailyState();renderTodayList();}
+
+/* ── Time selects ── */
+function buildTimeOpts(sel){
+  let s=`<option value=""${!sel?' selected':''}>時刻なし</option>`;
+  for(let h=0;h<24;h++)for(let m=0;m<60;m+=15){const v=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;s+=`<option value="${v}"${sel===v?' selected':''}>${v}</option>`;}
+  return s;
+}
+function buildTimeSelects(){
+  ['tdeadline-time','tdeadline-time-w','tdeadline-time-m'].forEach(id=>document.getElementById(id).innerHTML=buildTimeOpts(''));
+}
+
+/* ── Work hours (multi-block) ── */
+function buildHourOpts15(sel){
+  let s='';
+  for(let h=0;h<=24;h++)for(let m=0;m<60;m+=15){
+    if(h===24&&m>0)break;
+    const v=h*60+m;
+    const label=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    s+=`<option value="${v}"${sel===v?' selected':''}>${label}</option>`;
+  }
+  return s;
+}
+function minToLabel(m){return`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;}
+function totalWorkMins(blocks){return blocks.reduce((s,b)=>s+Math.max(0,b.e-b.s),0);}
+
+function applyTodayDefaults(force){
+  // 「今日」タブで手動編集済みの場合、設定変更で勝手に上書きしない（force指定時のみ上書き）
+  if(todayBlocksEdited && !force){ renderTodayBlocks(); renderTimeline(); return; }
+  const now=new Date();
+  const dow=now.getDay();
+  const todayStr=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  const exc=exceptions.find(e=>e.date===todayStr);
+  if(exc){
+    todayBlocks=exc.blocks.map(b=>({...b}));
+  } else {
+    todayBlocks=(schedule[dow]||[]).map(b=>({...b}));
+    if(!todayBlocks.length) todayBlocks=[{s:9*60,e:18*60}];
+  }
+  todayBlocksEdited=false;
+  renderTodayBlocks();
+  renderTimeline();
+}
+
+function renderTodayBlocks(){
+  const el=document.getElementById('today-blocks-list');
+  if(!el)return;
+  el.innerHTML=todayBlocks.map((b,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <span style="font-size:12px;color:var(--text-muted);width:52px;">ブロック${i+1}</span>
+      <select class="wh-time-sel" onchange="updateTodayBlock(${i},'s',this.value)">${buildHourOpts15(b.s)}</select>
+      <span style="font-size:13px;color:var(--text-muted);">〜</span>
+      <select class="wh-time-sel" onchange="updateTodayBlock(${i},'e',this.value)">${buildHourOpts15(b.e)}</select>
+      ${todayBlocks.length>1?`<button onclick="removeTodayBlock(${i})" style="background:none;border:none;color:var(--text-hint);font-size:16px;cursor:pointer;padding:0 4px;">×</button>`:''}
+    </div>`).join('');
+  const tot=totalWorkMins(todayBlocks);
+  const sm=document.getElementById('wh-summary');
+  if(sm) sm.innerHTML=`<span style="font-size:12px;color:var(--text-muted);">合計 <strong style="color:var(--text);">${(tot/60).toFixed(1)}h</strong></span>`;
+}
+function updateTodayBlock(i,field,val){
+  todayBlocks[i][field]=parseInt(val);
+  todayBlocksEdited=true; saveDailyState();
+  renderTodayBlocks(); renderTimeline();
+}
+function addTodayBlock(){
+  const last=todayBlocks[todayBlocks.length-1];
+  const s=last?Math.min(last.e+60,23*60):9*60;
+  todayBlocks.push({s,e:Math.min(s+60,24*60)});
+  todayBlocksEdited=true; saveDailyState();
+  renderTodayBlocks(); renderTimeline();
+}
+function removeTodayBlock(i){
+  todayBlocks.splice(i,1);
+  todayBlocksEdited=true; saveDailyState();
+  renderTodayBlocks(); renderTimeline();
+}
+function getTodayAvailHours(){return totalWorkMins(todayBlocks)/60;}
+
+/* ── Timeline ── */
+function renderTimeline(){
+  const wrap=document.getElementById('timeline-wrap');
+  if(!wrap||!todayBlocks.length){if(wrap)wrap.innerHTML='';return;}
+  const allMins=todayBlocks.flatMap(b=>[b.s,b.e]).filter(v=>isFinite(v));
+  if(!allMins.length){wrap.innerHTML='';return;}
+  const startH=Math.floor(Math.min(...allMins)/60);
+  const endH=Math.ceil(Math.max(...allMins)/60);
+  const totalMins=(endH-startH)*60;
+  const PX=1.8;
+  let html='';
+  // hour grid
+  for(let h=startH;h<=endH;h++){
+    const top=(h*60-startH*60)*PX;
+    html+=`<div style="position:absolute;top:${top}px;left:36px;right:0;border-top:1px solid var(--border);pointer-events:none;"></div>`;
+    html+=`<div style="position:absolute;top:${top-6}px;left:0;width:32px;text-align:right;font-size:10px;color:var(--text-hint);">${String(h).padStart(2,'0')}:00</div>`;
+    if(h<endH){
+      const hTop=top+30*PX;
+      html+=`<div style="position:absolute;top:${hTop}px;left:36px;right:0;border-top:1px dashed var(--border);opacity:.35;pointer-events:none;"></div>`;
+    }
+  }
+  // work blocks (background)
+  todayBlocks.forEach(b=>{
+    const top=(b.s-startH*60)*PX;
+    const h=(b.e-b.s)*PX;
+    html+=`<div style="position:absolute;top:${top}px;left:36px;right:4px;height:${h}px;border-radius:6px;background:var(--accent-light);border:1.5px solid var(--accent);opacity:.35;pointer-events:none;"></div>`;
+  });
+  // task blocks (stacked sequentially within work blocks)
+  const selTasks=tasks.filter(t=>(taskCounts[t.id]||0)>0);
+  // flatten work windows
+  const windows=[...todayBlocks].sort((a,b)=>a.s-b.s);
+  let wIdx=0, cursor=windows[0]?.s??0;
+  selTasks.forEach(t=>{
+    const cnt=taskCounts[t.id]||0;
+    for(let r=0;r<cnt;r++){
+      let remaining=t.hours*60;
+      while(remaining>0&&wIdx<windows.length){
+        if(cursor>=windows[wIdx].e){wIdx++;if(wIdx<windows.length)cursor=windows[wIdx].s;break;}
+        const avail=windows[wIdx].e-cursor;
+        const use=Math.min(remaining,avail);
+        const top=(cursor-startH*60)*PX;
+        const bh=use*PX;
+        const info=deadlineInfo(t);const diff=info?.diff??99;
+        const cls=diff<=0?'tb-today':diff<=2?'tb-near':'tb-ok';
+        const rep=cnt>1?` (${r+1}回目)`:'';
+        html+=`<div class="task-block ${cls}" style="position:absolute;top:${top}px;left:40px;right:8px;height:${Math.max(bh,14)}px;">${t.name}${rep} ${t.hours}h</div>`;
+        cursor+=use; remaining-=use;
+      }
+    }
+  });
+  // now line
+  const now=new Date(); const nowM=now.getHours()*60+now.getMinutes();
+  if(nowM>=startH*60&&nowM<=endH*60){
+    const top=(nowM-startH*60)*PX;
+    html+=`<div style="position:absolute;top:${top}px;left:36px;right:0;height:2px;background:var(--accent);z-index:10;border-radius:1px;"><div style="position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--accent);"></div></div>`;
+  }
+  wrap.innerHTML=`<div style="position:relative;height:${totalMins*PX+16}px;">${html}</div>`;
+}
+
+/* ── Settings (multi-block per dow) ── */
+function renderSettings(){
+  renderTabOrderSettings();
+  const grid=document.getElementById('dow-schedule-grid');
+  if(!grid)return;
+  grid.innerHTML=WDAYS.map((w,dow)=>{
+    const blocks=schedule[dow]||[];
+    const off=blocks.length===0;
+    const tot=totalWorkMins(blocks);
+    const blocksHTML=blocks.map((b,bi)=>`
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+        <select style="font-size:11px;padding:2px 3px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;" onchange="updateSchedBlock(${dow},${bi},'s',this.value)">${buildHourOpts15(b.s)}</select>
+        <span style="font-size:10px;color:var(--text-muted);">〜</span>
+        <select style="font-size:11px;padding:2px 3px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;" onchange="updateSchedBlock(${dow},${bi},'e',this.value)">${buildHourOpts15(b.e)}</select>
+        ${blocks.length>1?`<button onclick="removeSchedBlock(${dow},${bi})" style="background:none;border:none;color:var(--text-hint);font-size:13px;cursor:pointer;">×</button>`:''}
+      </div>`).join('');
+    return`<div style="background:var(--surface);border:1px solid ${off?'var(--border)':'var(--border-mid)'};border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;${off?'opacity:.5':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:600;">${w}曜日</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          ${!off?`<span style="font-size:11px;color:var(--text-muted);">${(tot/60).toFixed(1)}h</span>`:''}
+          <button onclick="${off?`addSchedBlock(${dow})`:`toggleSchedOff(${dow})`}" style="font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;">${off?'有効にする':'休みにする'}</button>
+          ${!off?`<button onclick="addSchedBlock(${dow})" style="font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;">＋</button>`:''}
+        </div>
+      </div>
+      ${off?'<div style="font-size:11px;color:var(--text-hint);">休み</div>':blocksHTML}
+    </div>`;
+  }).join('');
+  renderExceptions();
+}
+function updateSchedBlock(dow,bi,field,val){
+  if(!schedule[dow])schedule[dow]=[];
+  schedule[dow][bi][field]=parseInt(val);
+  saveSched(); renderSettings(); reapplyTodayFromSettings();
+}
+function addSchedBlock(dow){
+  if(!schedule[dow])schedule[dow]=[];
+  const last=schedule[dow][schedule[dow].length-1];
+  const s=last?Math.min(last.e+60,23*60):9*60;
+  schedule[dow].push({s,e:Math.min(s+60,24*60)});
+  saveSched(); renderSettings(); reapplyTodayFromSettings();
+}
+function removeSchedBlock(dow,bi){
+  schedule[dow].splice(bi,1);
+  saveSched(); renderSettings(); reapplyTodayFromSettings();
+}
+function toggleSchedOff(dow){
+  schedule[dow]=[];
+  saveSched(); renderSettings(); reapplyTodayFromSettings();
+}
+
+/* ── Exceptions ── */
+// 設定（曜日スケジュール・例外日）を変更したとき、今日の稼働に反映する。
+// 今日タブで手動編集済みなら確認してから上書きする。
+function reapplyTodayFromSettings(){
+  if(todayBlocksEdited){
+    if(confirm('「今日」タブで編集した稼働時間を、変更後の設定で上書きしますか？')){
+      applyTodayDefaults(true);
+    }
+  } else {
+    applyTodayDefaults(true);
+  }
+}
+function getExcBlocksForDate(dateStr){
+  const exc=exceptions.find(e=>e.date===dateStr);
+  return exc?exc.blocks:null;
+}
+function addException(){
+  const dateStr=new Date().toISOString().slice(0,10);
+  if(exceptions.find(e=>e.date===dateStr)){toast('その日はすでに登録されています');return;}
+  exceptions.push({date:dateStr,blocks:[{s:9*60,e:18*60}]});
+  saveExc(); renderExceptions(); reapplyTodayFromSettings();
+}
+function removeException(dateStr){
+  exceptions=exceptions.filter(e=>e.date!==dateStr);
+  saveExc(); renderExceptions(); reapplyTodayFromSettings();
+}
+function updateExcBlock(dateStr,bi,field,val){
+  const exc=exceptions.find(e=>e.date===dateStr); if(!exc)return;
+  exc.blocks[bi][field]=parseInt(val);
+  saveExc(); renderExceptions(); reapplyTodayFromSettings();
+}
+function addExcBlock(dateStr){
+  const exc=exceptions.find(e=>e.date===dateStr); if(!exc)return;
+  const last=exc.blocks[exc.blocks.length-1];
+  const s=last?Math.min(last.e+60,23*60):9*60;
+  exc.blocks.push({s,e:Math.min(s+60,24*60)});
+  saveExc(); renderExceptions(); reapplyTodayFromSettings();
+}
+function removeExcBlock(dateStr,bi){
+  const exc=exceptions.find(e=>e.date===dateStr); if(!exc)return;
+  exc.blocks.splice(bi,1);
+  saveExc(); renderExceptions(); reapplyTodayFromSettings();
+}
+function updateExcDate(oldDate,newDate){
+  if(!newDate)return;
+  if(exceptions.find(e=>e.date===newDate&&e.date!==oldDate)){toast('その日はすでに登録されています');return;}
+  const exc=exceptions.find(e=>e.date===oldDate); if(!exc)return;
+  exc.date=newDate;
+  saveExc(); renderExceptions(); reapplyTodayFromSettings();
+}
+function renderExceptions(){
+  const el=document.getElementById('exc-list'); if(!el)return;
+  if(!exceptions.length){el.innerHTML=`<div class="empty">例外日はありません</div>`;return;}
+  const sorted=[...exceptions].sort((a,b)=>a.date.localeCompare(b.date));
+  el.innerHTML=sorted.map(exc=>{
+    const d=new Date(exc.date+'T00:00:00');
+    const label=`${d.getMonth()+1}/${d.getDate()}(${WDAYS[d.getDay()]})`;
+    const tot=totalWorkMins(exc.blocks);
+    const blocksHTML=exc.blocks.map((b,bi)=>`
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
+        <select style="font-size:11px;padding:2px 3px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;" onchange="updateExcBlock('${exc.date}',${bi},'s',this.value)">${buildHourOpts15(b.s)}</select>
+        <span style="font-size:10px;color:var(--text-muted);">〜</span>
+        <select style="font-size:11px;padding:2px 3px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-family:inherit;" onchange="updateExcBlock('${exc.date}',${bi},'e',this.value)">${buildHourOpts15(b.e)}</select>
+        ${exc.blocks.length>1?`<button onclick="removeExcBlock('${exc.date}',${bi})" style="background:none;border:none;color:var(--text-hint);font-size:13px;cursor:pointer;padding:0 2px;">×</button>`:''}
+      </div>`).join('');
+    return`<div style="background:var(--surface);border:1px solid var(--border-mid);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <input type="date" class="inline-date" value="${exc.date}" onchange="updateExcDate('${exc.date}',this.value)" style="font-size:12px;">
+        <span style="font-size:12px;color:var(--text-muted);">${label}</span>
+        <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${(tot/60).toFixed(1)}h</span>
+        <button onclick="addExcBlock('${exc.date}')" style="font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--text-muted);cursor:pointer;">＋</button>
+        <button onclick="removeException('${exc.date}')" style="font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--text-hint);cursor:pointer;">削除</button>
+      </div>
+      ${exc.blocks.length===0?`<div style="font-size:11px;color:var(--text-hint);">稼働なし（休み）</div>`:blocksHTML}
+    </div>`;
+  }).join('');
+}
+
+/* ── Achievement system ── */
+const BADGES = [
+  // ── D ランク（初心者） ── 5個
+  {id:'first',     rank:'D', icon:'🌱', name:'はじめの一歩',     cond:'初めてタスクを完了する',                 check:a=>a.totalDone>=1},
+  {id:'done5',     rank:'D', icon:'🐣', name:'5タスク',           cond:'累計5タスクを完了する',                  check:a=>a.totalDone>=5},
+  {id:'pt100',     rank:'D', icon:'🌾', name:'100ポイント',       cond:'累計100ポイントを獲得する',              check:a=>a.points>=100},
+  {id:'lv2',       rank:'D', icon:'🌿', name:'レベル2',           cond:'レベル2に到達する',                      check:a=>calcLevel(a.points).lv>=2},
+  {id:'streak1',   rank:'D', icon:'🕯️', name:'初日',              cond:'初めて全タスクを完了する',               check:a=>a.perfectDays>=1},
+  // ── C ランク（入門） ── 5個
+  {id:'done10',    rank:'C', icon:'⭐', name:'10タスク',          cond:'累計10タスクを完了する',                 check:a=>a.totalDone>=10},
+  {id:'pt500',     rank:'C', icon:'🪙', name:'500ポイント',       cond:'累計500ポイントを獲得する',              check:a=>a.points>=500},
+  {id:'lv3',       rank:'C', icon:'🎋', name:'レベル3',           cond:'レベル3に到達する',                      check:a=>calcLevel(a.points).lv>=3},
+  {id:'streak3',   rank:'C', icon:'🔥', name:'3日連続',           cond:'3日連続で全タスクを完了する',            check:a=>a.bestStreak>=3},
+  {id:'heavy1',    rank:'C', icon:'🏋️', name:'初重量',            cond:'消費8以上のタスクを1回完了する',         check:a=>a.heavyDone>=1},
+  // ── B ランク（中級） ── 5個
+  {id:'done50',    rank:'B', icon:'🌟', name:'50タスク',          cond:'累計50タスクを完了する',                 check:a=>a.totalDone>=50},
+  {id:'pt1000',    rank:'B', icon:'💎', name:'1000ポイント',      cond:'累計1000ポイントを獲得する',             check:a=>a.points>=1000},
+  {id:'lv5',       rank:'B', icon:'🎯', name:'レベル5',           cond:'レベル5に到達する',                      check:a=>calcLevel(a.points).lv>=5},
+  {id:'streak7',   rank:'B', icon:'🚀', name:'1週間連続',         cond:'7日連続で全タスクを完了する',            check:a=>a.bestStreak>=7},
+  {id:'heavy',     rank:'B', icon:'💪', name:'重量級',            cond:'消費8以上のタスクを5回完了する',         check:a=>a.heavyDone>=5},
+  // ── A ランク（上級） ── 5個
+  {id:'done100',   rank:'A', icon:'💫', name:'100タスク',         cond:'累計100タスクを完了する',                check:a=>a.totalDone>=100},
+  {id:'pt3000',    rank:'A', icon:'💠', name:'3000ポイント',      cond:'累計3000ポイントを獲得する',             check:a=>a.points>=3000},
+  {id:'lv10',      rank:'A', icon:'🏆', name:'レベル10',          cond:'レベル10に到達する',                     check:a=>calcLevel(a.points).lv>=10},
+  {id:'streak14',  rank:'A', icon:'🌙', name:'2週間連続',         cond:'14日連続で全タスクを完了する',           check:a=>a.bestStreak>=14},
+  {id:'perfect',   rank:'A', icon:'✨', name:'パーフェクト',      cond:'5日間全タスクを完了する',                check:a=>a.perfectDays>=5},
+  // ── S ランク（超上級） ── 5個
+  {id:'done200',   rank:'S', icon:'🎖️', name:'200タスク',         cond:'累計200タスクを完了する',                check:a=>a.totalDone>=200},
+  {id:'pt5000',    rank:'S', icon:'🌠', name:'5000ポイント',      cond:'累計5000ポイントを獲得する',             check:a=>a.points>=5000},
+  {id:'streak30',  rank:'S', icon:'👑', name:'1ヶ月連続',         cond:'30日連続で全タスクを完了する',           check:a=>a.bestStreak>=30},
+  {id:'perfect20', rank:'S', icon:'🌈', name:'20日パーフェクト',  cond:'20日間全タスクを完了する',               check:a=>a.perfectDays>=20},
+  {id:'highprio',  rank:'S', icon:'🎪', name:'優先主義者',        cond:'重要度5のタスクを10回完了する',          check:a=>(a.highPrioDone||0)>=10},
+];
+const LEVEL_THRESHOLDS=[0,50,120,220,360,550,800,1120,1520,2020,2640];
+function defaultAchieve(){
+  return{points:0,totalDone:0,streak:0,bestStreak:0,lastDoneDate:'',lastStreakDate:'',perfectDays:0,heavyDone:0,highPrioDone:0,unlockedBadges:[],collection:[],history:[]};
+}
+function calcLevel(pts){
+  let lv=1;
+  for(let i=1;i<LEVEL_THRESHOLDS.length;i++){if(pts>=LEVEL_THRESHOLDS[i])lv=i+1;else break;}
+  const cur=LEVEL_THRESHOLDS[lv-1]||0;
+  const next=LEVEL_THRESHOLDS[lv]||LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length-1];
+  const pct=next>cur?Math.min((pts-cur)/(next-cur)*100,100):100;
+  return{lv,cur,next,pct};
+}
+function taskPoints(t){
+  if(t.customPts!=null&&t.customPts>=0) return Math.min(30,parseInt(t.customPts));
+  // auto: hours * priority * (1 + energy/10) を対数的に圧縮して 1〜15pt に収める。
+  // 重い/軽いの差がつぶれないよう、単純な min(10) 打ち切りをやめた。
+  const p=parseInt(t.priority)||3;
+  const e=parseInt(t.energy)||5;
+  const raw=t.hours * p * (1+e/10);           // おおよそ 0.25〜44 の範囲
+  const pts=Math.round(3*Math.log2(raw+1));    // 圧縮して滑らかに増やす
+  return Math.max(1,Math.min(15,pts));
+}
+function todayDateStr(){
+  const d=new Date();
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function awardTaskCompletion(t){
+  if(!achieve) achieve=defaultAchieve();
+  const pts=taskPoints(t);
+  const rec={id:t.id,pts,heavy:false,highPrio:false,earlyBonus:0,goalBonus:0,goalBonusClaimed:false,historyCount:0};
+  achieve.points+=pts;
+  achieve.totalDone+=1;
+  if(t.energy>=8){ achieve.heavyDone+=1; rec.heavy=true; }
+  if(parseInt(t.priority)>=5){ achieve.highPrioDone=(achieve.highPrioDone||0)+1; rec.highPrio=true; }
+  achieve.history.push({date:todayDateStr(),name:t.name,pts});
+  rec.historyCount+=1;
+  // 期限（日付指定）より早く完了した場合、早く終わった日数につき1ptボーナス
+  const dlInfo=deadlineInfo(t);
+  if(dlInfo&&!dlInfo.isRecurring&&dlInfo.diff>0){
+    const earlyBonus=Math.round(dlInfo.diff);
+    achieve.points+=earlyBonus;
+    rec.earlyBonus=earlyBonus;
+    achieve.history.push({date:todayDateStr(),name:`早期完了ボーナス（${t.name}・${earlyBonus}日早い）`,pts:earlyBonus});
+    rec.historyCount+=1;
+  }
+  // 目標タスク（優先順位1〜3位）ボーナス：1位+3pt、2位+2pt、3位+1pt。同一タスクは週1回のみ付与
+  const rank=goalRank[t.id];
+  if(rank&&!goalBonusClaimedThisWeek(t.id)){
+    const goalBonus=rank===1?3:rank===2?2:1;
+    achieve.points+=goalBonus;
+    rec.goalBonus=goalBonus;
+    rec.goalBonusClaimed=true;
+    goalBonusWeek[t.id]=getWeekKey(new Date());
+    saveGoalBonusWeek();
+    achieve.history.push({date:todayDateStr(),name:`目標タスクボーナス（${t.name}・${rank}位）`,pts:goalBonus});
+    rec.historyCount+=1;
+  }
+  if(achieve.history.length>200) achieve.history=achieve.history.slice(-200);
+  checkBadges();
+  saveAchieve();
+  return rec;
+}
+function revertTaskCompletion(rec){
+  if(!achieve||!rec) return;
+  achieve.points-=(rec.pts+rec.earlyBonus+rec.goalBonus);
+  achieve.totalDone=Math.max(0,achieve.totalDone-1);
+  if(rec.heavy) achieve.heavyDone=Math.max(0,achieve.heavyDone-1);
+  if(rec.highPrio) achieve.highPrioDone=Math.max(0,(achieve.highPrioDone||0)-1);
+  if(rec.goalBonusClaimed&&rec.id!=null&&goalBonusWeek[rec.id]===getWeekKey(new Date())){
+    delete goalBonusWeek[rec.id];
+    saveGoalBonusWeek();
+  }
+  if(rec.historyCount>0) achieve.history=achieve.history.slice(0,-rec.historyCount);
+  saveAchieve();
+}
+// 指定タスクの完了回数(doneCounts)を newCount に変更する。
+// 増える分は新たにポイント付与、減る分はそのポイントを取り消す（チェック外し＝ミス扱いで完全に取り消す）
+function setTaskDoneCount(id,newCount){
+  const t=tasks.find(tt=>tt.id===id);
+  if(!t) return 0;
+  const cnt=taskCounts[id]||0;
+  newCount=Math.max(0,Math.min(cnt,newCount));
+  const oldCount=doneCounts[id]||0;
+  if(newCount===oldCount) return 0;
+  if(!awardStack[id]) awardStack[id]=[];
+  let lastPts=0;
+  if(newCount>oldCount){
+    for(let i=oldCount;i<newCount;i++){
+      const rec=awardTaskCompletion(t);
+      awardStack[id].push(rec);
+      lastPts=rec.pts+rec.earlyBonus+rec.goalBonus;
+    }
+  }else{
+    for(let i=oldCount;i>newCount;i--){
+      const rec=awardStack[id].pop();
+      revertTaskCompletion(rec);
+    }
+  }
+  doneCounts[id]=newCount;
+  if(newCount>=cnt&&cnt>0) markDoneThisWeek(id);
+  else if(isDoneThisWeek(id)){ delete weeklyDone[id]; saveWeeklyDone(); }
+  saveDailyState();
+  return lastPts;
+}
+function onAllTasksDone(lastPts){
+  if(!achieve) achieve=defaultAchieve();
+  const today=todayDateStr();
+  if(achieve.lastDoneDate===today) return; // already celebrated today
+  achieve.lastDoneDate=today;
+  // streak
+  const yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
+  const yStr=`${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
+  achieve.streak=(achieve.lastStreakDate===yStr)?achieve.streak+1:1;
+  achieve.lastStreakDate=today;
+  if(achieve.streak>achieve.bestStreak) achieve.bestStreak=achieve.streak;
+  achieve.perfectDays+=1;
+  // bonus: +1pt per 3 hours of completed tasks
+  const sel=tasks.filter(tt=>(taskCounts[tt.id]||0)>0);
+  const totalHours=sel.reduce((s,tt)=>s+tt.hours*(taskCounts[tt.id]||0),0);
+  const bonusPts=Math.floor(totalHours/3);
+  if(bonusPts>0){
+    achieve.points+=bonusPts;
+    achieve.history.push({date:today,name:`ボーナス（${totalHours.toFixed(1)}h達成）`,pts:bonusPts});
+  }
+  // streak bonus: 3日連続、5日連続、以降5日ごと（10, 15, 20…）に+1pt
+  const streakBonusPts=streakBonus(achieve.streak);
+  if(streakBonusPts>0){
+    achieve.points+=streakBonusPts;
+    achieve.history.push({date:today,name:`連続記録ボーナス（${achieve.streak}日連続）`,pts:streakBonusPts});
+  }
+  checkBadges();
+  saveAchieve();
+  // Show popup
+  const lvInfo=calcLevel(achieve.points);
+  const bonusText=bonusPts>0?` ＋ボーナス+${bonusPts}pt（${totalHours.toFixed(1)}h）`:'';
+  const streakBonusText=streakBonusPts>0?` ＋連続ボーナス+${streakBonusPts}pt`:'';
+  document.getElementById('popup-icon').textContent='🎉';
+  document.getElementById('popup-title').textContent='全タスク完了！';
+  document.getElementById('popup-sub').textContent=`+${lastPts}pt 獲得！${bonusText}${streakBonusText}\n🔥${achieve.streak}日連続　Lv.${lvInfo.lv}`;
+  document.getElementById('ach-popup').classList.add('show');
+}
+function streakBonus(streak){
+  // 3日目のみ特別に+1pt、5日目以降は5日おきに+1pt（5,10,15,20…）
+  if(streak===3) return 1;
+  if(streak>=5&&streak%5===0) return 1;
+  return 0;
+}
+function checkBadges(){
+  if(!achieve) return;
+  BADGES.forEach(b=>{
+    if(!achieve.unlockedBadges.includes(b.id)&&b.check(achieve)){
+      achieve.unlockedBadges.push(b.id);
+      showBadgeToast(b);
+    }
+  });
+}
+function showBadgeToast(b){
+  const el=document.getElementById('new-badge-toast');
+  el.textContent=`${b.icon} バッジ獲得「${b.name}」`;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+function closeAchPopup(){document.getElementById('ach-popup').classList.remove('show');}
+function toggleCollection(badgeId){
+  if(!achieve) return;
+  if(!achieve.collection) achieve.collection=[];
+  const idx=achieve.collection.indexOf(badgeId);
+  if(idx>=0){
+    achieve.collection.splice(idx,1);
+  } else {
+    achieve.collection.push(badgeId);
+  }
+  saveAchieve();
+  renderAchieve();
+}
+
+function renderAchieve(){
+  if(!achieve) achieve=defaultAchieve();
+  if(!achieve.collection) achieve.collection=[];
+  const lvInfo=calcLevel(achieve.points);
+  document.getElementById('ach-streak').textContent=achieve.streak;
+  document.getElementById('ach-best-streak').textContent=achieve.bestStreak;
+  document.getElementById('ach-level').textContent=lvInfo.lv;
+  document.getElementById('ach-points').textContent=achieve.points;
+  document.getElementById('ach-total-done').textContent=achieve.totalDone;
+  document.getElementById('ach-level-label').textContent=`Lv.${lvInfo.lv}`;
+  document.getElementById('ach-next-pt').textContent=lvInfo.lv<LEVEL_THRESHOLDS.length?`次のレベルまで ${lvInfo.next-achieve.points}pt`:'MAX';
+  document.getElementById('ach-level-bar').style.width=lvInfo.pct+'%';
+
+  // Collection shelf
+  const shelf=document.getElementById('collection-shelf');
+  if(achieve.collection.length===0){
+    shelf.className='collection-shelf empty-shelf';
+    shelf.innerHTML='';
+  } else {
+    shelf.className='collection-shelf';
+    shelf.innerHTML=achieve.collection.map(bid=>{
+      const b=BADGES.find(b=>b.id===bid);
+      if(!b) return'';
+      return`<div class="shelf-badge" title="${b.name}：${b.cond}">
+        <div class="shelf-icon">${b.icon}</div>
+        <div class="shelf-name">${b.name}</div>
+        <div class="shelf-remove" onclick="event.stopPropagation();toggleCollection('${b.id}')" title="外す">×</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Badge grid grouped by rank
+  const RANK_ORDER = ['S','A','B','C','D'];
+  const RANK_LABELS = {S:'S ランク',A:'A ランク',B:'B ランク',C:'C ランク',D:'D ランク'};
+  const RANK_DESC   = {S:'超上級',A:'上級',B:'中級',C:'入門',D:'初心者'};
+  document.getElementById('badge-grid').innerHTML = RANK_ORDER.map(rank=>{
+    const badges=BADGES.filter(b=>b.rank===rank);
+    const unlockedCount=badges.filter(b=>achieve.unlockedBadges.includes(b.id)).length;
+    return`<div class="rank-section rank-${rank}">
+      <div class="rank-header">
+        <span class="rank-label">${RANK_LABELS[rank]}</span>
+        <span style="font-size:11px;color:var(--text-muted);">${RANK_DESC[rank]}</span>
+        <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">${unlockedCount}/${badges.length}</span>
+        <div class="rank-divider"></div>
+      </div>
+      <div class="badge-grid">
+        ${badges.map(b=>{
+          const unlocked=achieve.unlockedBadges.includes(b.id);
+          const inCol=achieve.collection.includes(b.id);
+          let cls=`badge-item rank-${rank}`;
+          if(unlocked) cls+=' unlocked'; else cls+=' locked';
+          if(inCol) cls+=' in-collection';
+          const onclick=unlocked?`onclick="toggleCollection('${b.id}')"` :'';
+          return`<div class="${cls}" ${onclick}>
+            <div class="badge-icon">${b.icon}</div>
+            <div class="badge-text">
+              <div class="badge-name">${b.name}</div>
+              <div class="badge-cond">${b.cond}</div>
+            </div>
+            <div class="badge-status">
+              <span class="badge-rank-pip">${rank}</span>
+              ${unlocked?`<div class="badge-add-hint">${inCol?'✓ 展示中':'＋ 追加'}</div>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  // ポイント履歴（日付ごとにまとめ、新しい順に表示）
+  const hist=(achieve.history||[]);
+  const box=document.getElementById('pt-history');
+  if(box){
+    if(!hist.length){
+      box.innerHTML='<div class="pth-empty">まだポイント獲得の記録がありません</div>';
+    } else {
+      const byDay={};
+      hist.forEach(h=>{ (byDay[h.date]=byDay[h.date]||[]).push(h); });
+      const days=Object.keys(byDay).sort().reverse();
+      box.innerHTML=days.map(d=>{
+        const items=byDay[d].slice().reverse();
+        const dayTotal=items.reduce((s,h)=>s+(h.pts||0),0);
+        const rows=items.map(h=>{
+          const isBonus=/ボーナス/.test(h.name);
+          return`<div class="pth-item${isBonus?' pth-bonus':''}">
+            <span class="pth-name">${h.name}</span>
+            <span class="pth-pts">+${h.pts}pt</span>
+          </div>`;
+        }).join('');
+        return`<div class="pth-day">${d}　合計 +${dayTotal}pt</div>${rows}`;
+      }).join('');
+    }
+  }
+}
+
+/* ── Deadline type toggle (add form) ── */
+function onDeadlineTypeChange(){
+  const t=document.getElementById('tdeadline-type').value;
+  document.getElementById('tdeadline-date-row').style.display=t==='date'?'':'none';
+  document.getElementById('tdeadline-weekly-row').style.display=t==='weekly'?'':'none';
+  document.getElementById('tdeadline-monthly-row').style.display=t==='monthly'?'':'none';
+}
+
+/* ── Deadline display helpers ── */
+function deadlineInfo(t){
+  // Returns {label, cls, isRecurring, nextDate}
+  const today=new Date(); today.setHours(0,0,0,0);
+  if(t.deadlineType==='date'&&t.deadlineDate){
+    const d=new Date(t.deadlineDate+'T00:00:00');
+    const diff=Math.round((d-today)/86400000);
+    const wday=WDAYS[d.getDay()];
+    const label=`${d.getMonth()+1}/${d.getDate()}(${wday})${t.deadlineTime?' '+t.deadlineTime:''}`;
+    const cls=diff<=0?'chip-dl-today':diff<=2?'chip-dl-near':'chip-dl-ok';
+    return{label,cls,isRecurring:false,diff};
+  }
+  if(t.deadlineType==='weekly'&&t.deadlineDay!=null){
+    const dow=parseInt(t.deadlineDay);
+    const todayDow=today.getDay();
+    let diff=dow-todayDow; if(diff<0)diff+=7;
+    const next=new Date(today); next.setDate(today.getDate()+diff);
+    const label=`毎週${WDAYS[dow]}${t.deadlineTime?' '+t.deadlineTime:''}`;
+    const cls=diff===0?'chip-dl-today':diff<=2?'chip-dl-near':'chip-rec';
+    return{label,cls,isRecurring:true,diff,nextDate:fmtDate(next)};
+  }
+  if(t.deadlineType==='monthly'&&t.deadlineDOM){
+    const dom=parseInt(t.deadlineDOM);
+    const cand=new Date(today.getFullYear(),today.getMonth(),dom===31?new Date(today.getFullYear(),today.getMonth()+1,0).getDate():dom);
+    if(cand<today) cand.setMonth(cand.getMonth()+1);
+    const diff=Math.round((cand-today)/86400000);
+    const label=`毎月${dom===31?'末日':dom+'日'}${t.deadlineTime?' '+t.deadlineTime:''}`;
+    const cls=diff===0?'chip-dl-today':diff<=2?'chip-dl-near':'chip-rec';
+    return{label,cls,isRecurring:true,diff,nextDate:fmtDate(cand)};
+  }
+  return null;
+}
+function fmtDate(d){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function deadlineChip(t){
+  const info=deadlineInfo(t); if(!info)return'';
+  return`<span class="chip ${info.cls}">⏰ ${info.label}</span>`;
+}
+
+/* ── Add task ── */
+function addTask(){
+  const name=document.getElementById('tname').value.trim();
+  if(!name){toast('タスク名を入力してください');return;}
+  const dtype=document.getElementById('tdeadline-type').value;
+  const task={id:Date.now(),name,
+    hours:parseFloat(document.getElementById('thours').value),
+    energy:parseInt(document.getElementById('tenergy').value),
+    priority:parseInt(document.getElementById('tprio').value),
+    customPts: document.getElementById('tcustompts').value !== '' ? parseInt(document.getElementById('tcustompts').value) : null,
+    deadlineType:dtype};
+  if(dtype==='date'){task.deadlineDate=document.getElementById('tdeadline-date').value;task.deadlineTime=document.getElementById('tdeadline-time').value;}
+  if(dtype==='weekly'){task.deadlineDay=document.getElementById('tdeadline-dow').value;task.deadlineTime=document.getElementById('tdeadline-time-w').value;}
+  if(dtype==='monthly'){task.deadlineDOM=document.getElementById('tdeadline-dom').value;task.deadlineTime=document.getElementById('tdeadline-time-m').value;}
+  tasks.push(task); save();
+  document.getElementById('tname').value='';
+  document.getElementById('tcustompts').value='';
+  document.getElementById('tdeadline-type').value='none';
+  onDeadlineTypeChange();
+  renderTasks(); renderTodayList();
+  toast('タスクを追加しました');
+}
+function delTask(id){const t=tasks.find(tt=>tt.id===id);if(t&&!confirm(`「${t.name}」を削除しますか？`))return;tasks=tasks.filter(t=>t.id!==id);delete taskCounts[id];delete doneCounts[id];delete awardStack[id];delete goalRank[id];delete goalManual[id];delete goalExcluded[id];save();saveDailyState();renderTasks();renderTodayList();toast('削除しました');}
+function updateTask(id,field,value){
+  const t=tasks.find(t=>t.id===id);if(!t)return;
+  if(field==='name'){const v=value.trim();if(!v){toast('タスク名は必須です');renderTasks();return;}t[field]=v;}
+  else if(field==='energy'||field==='priority')t[field]=parseInt(value);
+  else if(field==='hours')t[field]=parseFloat(value);
+  else if(field==='customPts')t[field]=value===''?null:parseInt(value);
+  else t[field]=value;
+  if(field==='deadlineType'){t.deadlineDate='';t.deadlineDay=null;t.deadlineDOM=null;t.deadlineTime='';}
+  save(); renderTasks(); renderTodayList();
+  if(calSelected)renderCalDetail(calSelected);
+  toast('更新しました');
+}
+
+/* ── Render task list ── */
+function buildHourOpts(sel){let s='';for(let v=0.25;v<=8;v=Math.round((v+0.25)*100)/100)s+=`<option value="${v}"${sel===v?' selected':''}>${v}h</option>`;return s;}
+
+function renderTasks(){
+  const list=document.getElementById('tlist'),empty=document.getElementById('tlist-empty');
+  if(!tasks.length){empty.style.display='';list.innerHTML='';return;}
+  empty.style.display='none';
+  list.innerHTML=tasks.map(t=>{
+    const info=deadlineInfo(t);
+    const dlType=t.deadlineType||'none';
+    const dlChip=info?`<span class="chip ${info.cls}">⏰ ${info.label}</span>`:'';
+
+    // deadline editing rows
+    let dlEdit='';
+    if(dlType==='date'){
+      dlEdit=`<div class="tcard-row"><span class="tcard-label">日付</span>
+        <input type="date" class="inline-date" value="${t.deadlineDate||''}" onchange="updateTask(${t.id},'deadlineDate',this.value)">
+        <select class="inline-sel" onchange="updateTask(${t.id},'deadlineTime',this.value)">${buildTimeOpts(t.deadlineTime||'')}</select>
+      </div>`;
+    } else if(dlType==='weekly'){
+      const dowOpts=WDAYS.map((w,i)=>`<option value="${i}"${parseInt(t.deadlineDay)===i?' selected':''}>${w}曜日</option>`).join('');
+      dlEdit=`<div class="tcard-row"><span class="tcard-label">曜日</span>
+        <select class="inline-sel" onchange="updateTask(${t.id},'deadlineDay',this.value)">${dowOpts}</select>
+        <select class="inline-sel" onchange="updateTask(${t.id},'deadlineTime',this.value)">${buildTimeOpts(t.deadlineTime||'')}</select>
+      </div>`;
+    } else if(dlType==='monthly'){
+      const domOpts=Array.from({length:31},(_,i)=>i+1).map(d=>`<option value="${d}"${parseInt(t.deadlineDOM)===d?' selected':''}>${d===31?'末日':d+'日'}</option>`).join('');
+      dlEdit=`<div class="tcard-row"><span class="tcard-label">毎月</span>
+        <select class="inline-sel" onchange="updateTask(${t.id},'deadlineDOM',this.value)">${domOpts}</select>
+        <select class="inline-sel" onchange="updateTask(${t.id},'deadlineTime',this.value)">${buildTimeOpts(t.deadlineTime||'')}</select>
+      </div>`;
+    }
+
+    return `<div class="tcard" draggable="true" data-id="${t.id}"
+      ondragstart="onDragStart(event,${t.id})"
+      ondragover="onDragOver(event)"
+      ondragleave="onDragLeave(event)"
+      ondrop="onDrop(event,${t.id})">
+      <div style="display:flex;align-items:flex-start;gap:6px;">
+        <span class="drag-handle" title="ドラッグして並べ替え">⠿</span>
+        <input class="tcard-name-input" value="${t.name.replace(/"/g,'&quot;')}"
+          onblur="updateTask(${t.id},'name',this.value)"
+          onkeydown="if(event.key==='Enter')this.blur()"
+          style="flex:1;">
+        <button class="del-btn" onclick="delTask(${t.id})" style="margin-left:0;margin-top:1px;">×</button>
+      </div>
+      <div class="tcard-row">
+        <span class="tcard-label">時間</span>
+        <select class="inline-sel" onchange="updateTask(${t.id},'hours',this.value)">${buildHourOpts(t.hours)}</select>
+        <span class="tcard-label" style="margin-left:4px;">消費</span>
+        <select class="inline-sel" onchange="updateTask(${t.id},'energy',this.value)">
+          ${[1,2,3,4,5,6,7,8,9,10].map(v=>`<option value="${v}"${t.energy==v?' selected':''}>${v}${v===1?' 低':v===10?' 高':''}</option>`).join('')}
+        </select>
+        <select class="inline-sel" onchange="updateTask(${t.id},'priority',this.value)">
+          ${[1,2,3,4,5].map(v=>`<option value="${v}"${t.priority==v?' selected':''}>${v}${v===1?' 低':v===5?' 高':''}</option>`).join('')}
+        </select>
+      </div>
+      <div class="tcard-row">
+        <span class="tcard-label">ポイント</span>
+        <input type="number" class="inline-sel" value="${t.customPts!=null?t.customPts:''}" placeholder="自動(${taskPoints(t)}pt)" min="0" max="10" step="1" style="width:90px;font-size:11px;padding:2px 5px;"
+          onchange="updateTask(${t.id},'customPts',this.value)"
+          oninput="this.placeholder='自動(${taskPoints({...t,customPts:null})}pt)'">
+      </div>
+      <div class="tcard-row">
+        <span class="tcard-label">期限</span>
+        <select class="inline-sel" onchange="updateTask(${t.id},'deadlineType',this.value)">
+          <option value="none"${dlType==='none'?' selected':''}>なし</option>
+          <option value="date"${dlType==='date'?' selected':''}>特定日付</option>
+          <option value="weekly"${dlType==='weekly'?' selected':''}>毎週</option>
+          <option value="monthly"${dlType==='monthly'?' selected':''}>毎月</option>
+        </select>
+        ${dlChip}
+      </div>
+      ${dlEdit}
+    </div>`;
+  }).join('');
+}
+
+/* ── Drag & Drop ── */
+let dragSrcId=null;
+function onDragStart(e,id){dragSrcId=id;e.currentTarget.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function onDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';e.currentTarget.classList.add('drag-over');}
+function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function onDrop(e,targetId){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(dragSrcId===null||dragSrcId===targetId)return;
+  const srcIdx=tasks.findIndex(t=>t.id===dragSrcId);
+  const tgtIdx=tasks.findIndex(t=>t.id===targetId);
+  if(srcIdx<0||tgtIdx<0)return;
+  const [moved]=tasks.splice(srcIdx,1);
+  tasks.splice(tgtIdx,0,moved);
+  dragSrcId=null;
+  save(); renderTasks(); renderTodayList();
+}
+document.addEventListener('dragend',()=>{dragSrcId=null;document.querySelectorAll('.tcard').forEach(el=>el.classList.remove('dragging','drag-over'));});
+
+/* ── Today list ── */
+function changeCount(id,delta){taskCounts[id]=Math.min(9,Math.max(0,(taskCounts[id]||0)+delta));saveDailyState();renderTodayList();renderTimeline();}
+function toggleDone(id,rep){
+  const done=doneCounts[id]||0;
+  const wasIncrease=done<rep;
+  const newCount=wasIncrease?rep:rep-1;
+  // チェックを外す＝ポイント取り消し。ボーナスを含む場合は誤タップ防止の確認を出す
+  if(!wasIncrease){
+    const stack=awardStack[id]||[];
+    const rec=stack[stack.length-1];
+    const hasBonus=rec&&(rec.earlyBonus>0||rec.goalBonus>0);
+    if(hasBonus&&!confirm('チェックを外すと獲得ポイント（ボーナス含む）が取り消されます。よろしいですか？')){
+      renderTodayList();
+      return;
+    }
+  }
+  const lastPts=setTaskDoneCount(id,newCount);
+  if(wasIncrease){
+    const sel=tasks.filter(tt=>(taskCounts[tt.id]||0)>0);
+    const allDone=sel.length>0&&sel.every(tt=>(doneCounts[tt.id]||0)>=(taskCounts[tt.id]||0));
+    if(allDone) onAllTasksDone(lastPts);
+  }
+  renderTodayList();
+}
+function renderTodayList(){
+  const list=document.getElementById('today-tlist'),empty=document.getElementById('today-tlist-empty'),countEl=document.getElementById('selected-count');
+  updateGoalRanking();
+  renderGoalSection();
+  if(!tasks.length){empty.style.display='';list.innerHTML='';countEl.style.display='none';return;}
+  empty.style.display='none';
+
+  // Auto-select tasks with deadline within 2 days (only if not yet manually set)
+  tasks.forEach(t=>{
+    const info=deadlineInfo(t);
+    if(info&&info.diff!==undefined&&info.diff<=2&&info.diff>=0){
+      if(!taskCounts[t.id]) taskCounts[t.id]=1;
+    }
+  });
+
+  list.innerHTML=tasks.map(t=>{
+    const cnt=taskCounts[t.id]||0,done=doneCounts[t.id]||0;
+    const totalH=(t.hours*cnt).toFixed(t.hours%1?2:0);
+    const weekDone=isDoneThisWeek(t.id);
+    const allDone=weekDone||(cnt>0&&done>=cnt);
+    const checks=cnt>0?`<div class="done-checks">${Array.from({length:cnt},(_,i)=>`<div class="done-chk${done>i?' checked':''}" role="checkbox" tabindex="0" aria-checked="${done>i?'true':'false'}" aria-label="${t.name} ${i+1}回目 完了" onkeydown="kbClick(event)" onclick="toggleDone(${t.id},${i+1})"></div>`).join('')}</div>`:'';
+    const info=deadlineInfo(t);
+    const dlLabel=info?`<span style="font-size:11px;color:var(--text-hint);margin-left:3px;">⏰${info.label}</span>`:'';
+    const isAuto=info&&info.diff!==undefined&&info.diff<=2&&info.diff>=0;
+    const autoBadge=isAuto&&cnt>0?`<span class="auto-chip">期限近</span>`:'';
+    const weekDoneBadge=weekDone?`<span class="chip" style="background:var(--accent2-light);color:var(--accent);">今週完了</span>`:'';
+    const rank=goalRank[t.id];
+    const goalBonus=(rank&&!goalBonusClaimedThisWeek(t.id))?goalBonusAmount(rank):0;
+    const goalChip=rank?`<span class="chip" style="background:var(--accent2-light);color:var(--accent2);">🎯${rank}位${goalBonus>0?` +${goalBonus}pt`:'（獲得済み）'}</span>`:(goalManual[t.id]?`<span class="chip chip-gray">🎯目標</span>`:'');
+    return`<div class="check-item${allDone?' all-done':''}">
+      <span class="task-name">${t.name}${dlLabel} <span style="font-size:11px;color:var(--text-hint);">${t.hours}h×</span></span>
+      ${autoBadge}${weekDoneBadge}${goalChip}
+      <div class="counter">
+        <button class="counter-btn" onclick="changeCount(${t.id},-1)"${cnt===0?' disabled':''}>−</button>
+        <span class="counter-val${cnt>0?' active':''}">${cnt}</span>
+        <button class="counter-btn" onclick="changeCount(${t.id},1)"${cnt===9?' disabled':''}>＋</button>
+      </div>
+      ${cnt>0?`<span class="chip chip-gray">${totalH}h</span>`:''}
+      ${checks}
+    </div>`;
+  }).join('');
+  const sel=tasks.filter(t=>(taskCounts[t.id]||0)>0);
+  if(sel.length){
+    const totalH=sel.reduce((s,t)=>s+t.hours*(taskCounts[t.id]||0),0);
+    const doneCount=sel.filter(t=>(doneCounts[t.id]||0)>=(taskCounts[t.id]||0)).length;
+    countEl.style.display='';
+    countEl.textContent=`${sel.length}種類選択中 — 合計 ${totalH.toFixed(1)}h　✓ ${doneCount}/${sel.length} 完了`;
+  }else countEl.style.display='none';
+}
+
+/* ── Calendar ── */
+let calView='month'; // 'month' | 'week'
+let calWeekOffset=0; // weeks from current week
+
+function setCalView(v){
+  calView=v;
+  document.getElementById('vbtn-month').classList.toggle('active',v==='month');
+  document.getElementById('vbtn-week').classList.toggle('active',v==='week');
+  document.getElementById('cal-month-view').style.display=v==='month'?'':'none';
+  document.getElementById('cal-week-view').style.display=v==='week'?'':'none';
+  document.getElementById('cal-detail').style.display='none';
+  calSelected=null;
+  renderCal();
+}
+
+function calMove(d){
+  if(calView==='month'){calMonth+=d;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}}
+  else{calWeekOffset+=d;}
+  renderCal();
+}
+
+// Build taskMap for any range of dates
+function buildTaskMapForDates(dates){
+  const map={};
+  dates.forEach(dateStr=>{
+    const cellDate=new Date(dateStr+'T00:00:00');
+    tasks.forEach(t=>{
+      let hit=false;
+      if(t.deadlineType==='date'&&t.deadlineDate===dateStr)hit=true;
+      if(t.deadlineType==='weekly'&&parseInt(t.deadlineDay)===cellDate.getDay())hit=true;
+      if(t.deadlineType==='monthly'){
+        const dom=parseInt(t.deadlineDOM);
+        const lastDay=new Date(cellDate.getFullYear(),cellDate.getMonth()+1,0).getDate();
+        if(dom===31&&cellDate.getDate()===lastDay)hit=true;
+        else if(dom===cellDate.getDate())hit=true;
+      }
+      if(hit){map[dateStr]=map[dateStr]||[];map[dateStr].push(t);}
+    });
+  });
+  return map;
+}
+
+function toggleCalDone(taskId, dateStr){
+  const key=`${taskId}-${dateStr}`;
+  calDone[key]=!calDone[key];
+  renderCal();
+  if(calSelected&&calView==='month'){
+    const allDates=[];
+    const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+    for(let d=1;d<=daysInMonth;d++) allDates.push(`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+    renderCalDetail(calSelected,buildTaskMapForDates(allDates));
+  }
+}
+
+function renderCal(){
+  if(calView==='month') renderCalMonth();
+  else renderCalWeek();
+}
+
+function renderCalMonth(){
+  document.getElementById('cal-title').textContent=`${calYear}年 ${calMonth+1}月`;
+  document.getElementById('cal-dow-row').innerHTML=WDAYS.map(w=>`<div class="cal-dow">${w}</div>`).join('');
+  const today=new Date();today.setHours(0,0,0,0);
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  // collect all date strings for this month
+  const allDates=[];
+  for(let d=1;d<=daysInMonth;d++) allDates.push(`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  const taskMap=buildTaskMapForDates(allDates);
+  let cells='';
+  // prev padding
+  for(let i=0;i<firstDay;i++){
+    const d=daysInPrev-firstDay+1+i;
+    const m=calMonth===0?12:calMonth, y=calMonth===0?calYear-1:calYear;
+    cells+=buildMonthCell(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`,d,true,false,[]);
+  }
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=new Date(calYear,calMonth,d).getTime()===today.getTime();
+    cells+=buildMonthCell(dateStr,d,false,isToday,taskMap[dateStr]||[]);
+  }
+  const rem=(7-(firstDay+daysInMonth)%7)%7;
+  for(let d=1;d<=rem;d++){
+    const m=calMonth===11?1:calMonth+2, y=calMonth===11?calYear+1:calYear;
+    cells+=buildMonthCell(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`,d,true,false,[]);
+  }
+  document.getElementById('cal-body').innerHTML=cells;
+  if(calSelected)renderCalDetail(calSelected,taskMap);
+}
+
+function getScheduleForDate(dateStr){
+  // Returns blocks for a given date, checking exceptions first
+  const exc=exceptions.find(e=>e.date===dateStr);
+  if(exc) return exc.blocks;
+  const d=new Date(dateStr+'T00:00:00');
+  return schedule[d.getDay()]||[];
+}
+
+function buildMonthCell(dateStr,dayNum,otherMonth,isToday,dayTasks){
+  let cls='cal-cell';
+  if(isToday)cls+=' today';
+  if(otherMonth)cls+=' other-month';
+  if(calSelected===dateStr)cls+=' selected';
+  if(!dayTasks.length){
+    const blocks=getScheduleForDate(dateStr);
+    const isExc=!!exceptions.find(e=>e.date===dateStr);
+    const workH=totalWorkMins(blocks)/60;
+    const workBadge=workH>0?`<div class="cal-badge" style="background:var(--bg);color:var(--text-hint);border:1px solid var(--border);font-size:9px;">${workH.toFixed(1)}h${isExc?'⚡':''}</div>`:'';
+    return`<div class="${cls}" onclick="selectCalDay('${dateStr}')"><div class="cal-day-num">${dayNum}</div>${workBadge}</div>`;
+  }
+  const count=dayTasks.length;
+  const totalH=dayTasks.reduce((s,t)=>s+t.hours,0);
+  const hasRec=dayTasks.some(t=>t.deadlineType!=='date');
+  const isExc=!!exceptions.find(e=>e.date===dateStr);
+  const blocks=getScheduleForDate(dateStr);
+  const workH=totalWorkMins(blocks)/60;
+  return`<div class="${cls}" onclick="selectCalDay('${dateStr}')">
+    <div class="cal-day-num">${dayNum}</div>
+    <div class="cal-summary">
+      <div class="cal-badge cal-badge-count">${count}件</div>
+      <div class="cal-badge cal-badge-hours">${totalH.toFixed(1)}h</div>
+      ${workH>0?`<div class="cal-badge" style="background:var(--bg);color:var(--text-hint);border:1px solid var(--border);font-size:9px;">${workH.toFixed(1)}h稼働${isExc?'⚡':''}</div>`:''}
+      ${hasRec?`<div class="cal-badge cal-badge-rec">↻</div>`:''}
+    </div>
+  </div>`;
+}
+
+function renderCalWeek(){
+  const now=new Date(); now.setHours(0,0,0,0);
+  const weekStart=new Date(now);
+  weekStart.setDate(now.getDate()-now.getDay()+calWeekOffset*7);
+  const dates=Array.from({length:7},(_,i)=>{const d=new Date(weekStart);d.setDate(weekStart.getDate()+i);return d;});
+  const dateStrs=dates.map(d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  const taskMap=buildTaskMapForDates(dateStrs);
+  const s=dates[0],e=dates[6];
+  document.getElementById('cal-title').textContent=`${s.getMonth()+1}/${s.getDate()} – ${e.getMonth()+1}/${e.getDate()}`;
+  const today=new Date();today.setHours(0,0,0,0);
+  const totalTasks=dateStrs.reduce((n,ds)=>n+(taskMap[ds]||[]).length,0);
+  document.getElementById('week-body').innerHTML = totalTasks===0
+    ? `<div class="week-empty-week">この週に期限のタスクはありません</div>`
+    : dates.map((d,i)=>{
+      const dateStr=dateStrs[i];
+      const isToday=d.getTime()===today.getTime();
+      const dayTasks=taskMap[dateStr]||[];
+      const totalH=dayTasks.reduce((s,t)=>s+t.hours,0);
+      const dayBlocks=getScheduleForDate(dateStr);
+      const workH=totalWorkMins(dayBlocks)/60;
+      const isExc=!!exceptions.find(e=>e.date===dateStr);
+      const summary=dayTasks.length
+        ? `<span class="chip chip-gray" style="font-size:10px;">${dayTasks.length}件</span><span class="chip chip-gray" style="font-size:10px;">${totalH.toFixed(1)}h</span>${workH>0?`<span class="chip chip-gray" style="font-size:10px;">${workH.toFixed(1)}h稼働${isExc?'⚡':''}</span>`:''}`
+        : workH>0?`<span class="chip chip-gray" style="font-size:10px;">${workH.toFixed(1)}h稼働${isExc?'⚡':''}</span>`:'';
+      const body=dayTasks.length
+        ? `<div class="week-day-body">${dayTasks.map(t=>{
+            const isRec=t.deadlineType!=='date';
+            const info=deadlineInfo(t);
+            const diff=info?info.diff:99;
+            const wCls=isRec?'wt-rec':diff<=0?'wt-today':diff<=2?'wt-near':'wt-ok';
+            const key=`${t.id}-${dateStr}`;
+            const done=!!calDone[key];
+            const timeChip=t.deadlineTime?`<span class="chip chip-gray" style="font-size:10px;">${t.deadlineTime}</span>`:'';
+            const hoursChip=`<span class="chip chip-gray" style="font-size:10px;">${t.hours}h</span>`;
+            const pChip=`<span class="chip ${PCHIP[t.priority]||'chip-pm'}" style="font-size:10px;">重要${t.priority}</span>`;
+            const recMark=isRec?`<span class="chip chip-rec" style="font-size:10px;">↻</span>`:'';
+            return`<div class="week-task ${wCls}" role="button" tabindex="0" aria-label="${t.name} 完了切替" onkeydown="kbClick(event)" onclick="toggleCalDone(${t.id},'${dateStr}')" style="${done?'opacity:.45;':''}cursor:pointer;">
+              <div class="done-chk${done?' checked':''}" style="width:16px;height:16px;border-radius:4px;flex-shrink:0;"></div>
+              <span class="week-task-name" style="${done?'text-decoration:line-through;':''}">${t.name}</span>
+              <div class="week-task-chips">${timeChip}${hoursChip}${pChip}${recMark}</div>
+            </div>`;
+          }).join('')}</div>`
+        : `<div class="week-day-empty">期限タスクなし</div>`;
+      return`<div class="week-day${isToday?' today':''}">
+        <div class="week-day-head${isToday?' today':''}">
+          <span class="week-dow-label">${WDAYS[d.getDay()]}</span>
+          <div class="week-date-circle">${d.getDate()}</div>
+          <div class="week-day-summary">${summary}</div>
+        </div>
+        ${body}
+      </div>`;
+    }).join('');
+  document.getElementById('cal-detail').style.display='none';
+}
+
+function selectCalDay(dateStr){
+  calSelected=calSelected===dateStr?null:dateStr;
+  const allDates=[];
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  for(let d=1;d<=daysInMonth;d++) allDates.push(`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+  const taskMap=buildTaskMapForDates(allDates);
+  renderCalMonth();
+  if(calSelected)renderCalDetail(calSelected,taskMap);
+  else document.getElementById('cal-detail').style.display='none';
+}
+
+function renderCalDetail(dateStr,taskMap){
+  const cellDate=new Date(dateStr+'T00:00:00');
+  const label=`${cellDate.getMonth()+1}/${cellDate.getDate()}(${WDAYS[cellDate.getDay()]})`;
+  document.getElementById('cal-detail-title').textContent=label+' の期限タスク';
+  const dayTasks=(taskMap||{})[dateStr]||[];
+  const el=document.getElementById('cal-detail');
+  const listEl=document.getElementById('cal-detail-list');
+  if(!dayTasks.length){listEl.innerHTML=`<div class="empty">この日の期限タスクはありません</div>`;}
+  else{
+    listEl.innerHTML=dayTasks.map(t=>{
+      const key=`${t.id}-${dateStr}`;
+      const done=!!calDone[key];
+      const recBadge=t.deadlineType!=='date'?`<span class="chip chip-rec">↻</span>`:'';
+      return`<div class="cal-detail-item" role="button" tabindex="0" aria-label="${t.name} 完了切替" onkeydown="kbClick(event)" onclick="toggleCalDone(${t.id},'${dateStr}')" style="cursor:pointer;${done?'opacity:.45;':''}">
+        <div class="done-chk${done?' checked':''}" style="flex-shrink:0;"></div>
+        <span style="flex:1;${done?'text-decoration:line-through;color:var(--text-hint);':''}">${t.name}</span>${recBadge}
+        ${t.deadlineTime?`<span class="chip chip-gray">${t.deadlineTime}</span>`:''}
+        <span class="chip chip-gray">${t.hours}h</span>
+        <span class="chip ${PCHIP[t.priority]||'chip-pm'}">重要度${t.priority}</span>
+      </div>`;
+    }).join('');
+  }
+  el.style.display='';
+}
+
+/* ── Result ── */
+function toggleResultDone(id,rep){
+  const t=tasks.find(t=>t.id===id);
+  if(!t) return;
+  const done=doneCounts[id]||0;
+  if(done<rep){
+    setTaskDoneCount(id,rep);
+  }
+  renderResult();
+  renderTodayList();
+}
+/* ── 目標タスク（優先順位1〜3位を自動設定、手動でも追加/除外可） ── */
+function getActiveForRanking(){
+  const active=[];
+  tasks.forEach(t=>{
+    if(isDoneThisWeek(t.id)) return;
+    const cnt=Math.max(1,taskCounts[t.id]||0);
+    const doneCnt=doneCounts[t.id]||0;
+    for(let i=doneCnt;i<cnt;i++) active.push({...t,_rep:cnt>1?i+1:0});
+  });
+  return active;
+}
+function updateGoalRanking(){
+  const active=getActiveForRanking();
+  // エネルギー未設定時は中間値(5)で暫定の順位を計算して表示し、
+  // 実際のエネルギーレベルが設定されたらスコアが更新されて自動的に並べ替わる
+  const sorted=rankTasks(active);
+  const newRank={};
+  // ① スコア上位から自動で1〜3位を決定（除外済みタスクはスキップ）
+  for(const t of sorted){
+    if(Object.keys(newRank).length>=3) break;
+    if(newRank[t.id]!=null) continue; // 同一タスクの重複（回数指定）はまとめて1つ
+    if(goalExcluded[t.id]) continue; // 一度目標タスクから外したタスクは自動で入れない
+    newRank[t.id]=Object.keys(newRank).length+1;
+  }
+  // ② 手動追加されたタスクのうち①に含まれないものは、スコア順のまま4位以降として連番を振る
+  let nextRank=Object.keys(newRank).length+1;
+  for(const t of sorted){
+    if(!goalManual[t.id]) continue;
+    if(newRank[t.id]!=null) continue;
+    newRank[t.id]=nextRank++;
+  }
+  goalRank=newRank;
+}
+function goalBonusAmount(rank){ return rank===1?3:rank===2?2:rank===3?1:0; }
+function toggleGoalTask(id){
+  const isGoal=!!goalRank[id]||!!goalManual[id];
+  if(isGoal){
+    goalExcluded[id]=true;
+    delete goalManual[id];
+  }else{
+    goalManual[id]=true;
+    delete goalExcluded[id];
+  }
+  updateGoalRanking();
+  renderTodayList();
+  renderResult();
+}
+function addManualGoalTask(id){
+  if(!id) return;
+  goalManual[id]=true;
+  delete goalExcluded[id];
+  updateGoalRanking();
+  renderTodayList();
+  renderResult();
+}
+const GOAL_MEDAL={1:'🥇',2:'🥈',3:'🥉'};
+function renderGoalSection(){
+  const listEl=document.getElementById('goal-list'),emptyEl=document.getElementById('goal-list-empty'),addListEl=document.getElementById('goal-add-list');
+  if(!listEl||!emptyEl||!addListEl) return;
+  const goalIds=Array.from(new Set([...Object.keys(goalRank),...Object.keys(goalManual)].map(Number)))
+    .filter(id=>tasks.some(t=>t.id===id));
+  goalIds.sort((a,b)=>(goalRank[a]||99)-(goalRank[b]||99));
+  if(!goalIds.length){
+    emptyEl.style.display='';
+    listEl.innerHTML='';
+  }else{
+    emptyEl.style.display='none';
+    listEl.innerHTML=goalIds.map(id=>{
+      const t=tasks.find(tt=>tt.id===id);
+      const rank=goalRank[id];
+      const basePts=taskPoints(t);
+      const rowCls=rank?(rank<=3?`rank${rank}`:'rank-extra'):'rank-none';
+      const medal=rank?(rank<=3?`<span class="goal-medal">${GOAL_MEDAL[rank]}</span>`:`<span class="goal-medal rank-num">${rank}</span>`):`<span class="goal-medal no-rank">手動</span>`;
+      const rankChip=rank?`<span class="chip" style="background:var(--accent2-light);color:var(--accent2);font-weight:600;">優先順位 ${rank}位</span>`:`<span class="chip chip-gray">手動追加</span>`;
+      const ptsChip=`<span class="chip chip-gray">獲得 ${basePts}pt</span>`;
+      const bonus=(rank&&!goalBonusClaimedThisWeek(t.id))?goalBonusAmount(rank):0;
+      const bonusChip=bonus>0?`<span class="chip" style="background:var(--accent-light);color:var(--accent);font-weight:600;">＋${bonus}pt ボーナス</span>`:(rank?`<span class="chip chip-gray">ボーナス獲得済み</span>`:'');
+      return`<div class="goal-item ${rowCls}">
+        ${medal}
+        <div class="goal-body">
+          <div class="goal-name">${t.name}</div>
+          <div class="goal-chips">
+            ${rankChip}
+            ${ptsChip}
+            ${bonusChip}
+            ${deadlineChip(t)}
+          </div>
+        </div>
+        <button class="goal-remove" onclick="toggleGoalTask(${id})" title="目標タスクから外す">×</button>
+      </div>`;
+    }).join('');
+  }
+  const avail=tasks.filter(t=>!goalIds.includes(t.id));
+  if(!avail.length){
+    addListEl.innerHTML='<span class="goal-add-none">追加できるタスクがありません</span>';
+  }else{
+    addListEl.innerHTML=avail.map(t=>`<button class="goal-add-item" onclick="addManualGoalTask(${t.id})">
+      <span class="goal-add-icon">＋</span>
+      <div class="goal-add-body">
+        <div class="goal-add-name">${t.name}</div>
+        <div class="goal-add-chips">
+          <span class="chip chip-gray">${t.hours}h</span>
+          <span class="chip ${PCHIP[t.priority]||'chip-pm'}">重要度${t.priority}</span>
+          <span class="chip chip-gray">獲得 ${taskPoints(t)}pt</span>
+          ${deadlineChip(t)}
+        </div>
+      </div>
+    </button>`).join('');
+  }
+}
+// 「重さ」＝エネルギー消費＋重要度（重要度は2倍の重みで評価）
+function energyLabel(e){
+  // 1-10段階のエネルギーを言葉に
+  if(e>=9) return '絶好調';
+  if(e>=7) return '良好';
+  if(e>=5) return '普通';
+  if(e>=3) return 'やや疲弊';
+  if(e>=1) return '限界近い';
+  return '未設定';
+}
+function heaviness(t){
+  const p=parseInt(t.priority)||3; // 重要度 1-5
+  return t.energy + p*2;
+}
+// 重いタスク・軽いタスクを交互に並べる（重→軽→重→軽…）
+// ただし締切当日・期限超過のタスクは安全策として引き続き最優先で表示する。
+// また、今日のエネルギー(todayE)が低い日は「軽いタスク優先」、高い日は「重いタスク優先」に
+// 交互配置の起点を切り替えることで、その日の状態に合わせた順番になる。
+function rankTasks(list){
+  const urgent=[],rest=[];
+  list.forEach(t=>{
+    const dl=deadlineInfo(t);
+    if(dl&&dl.diff<=0) urgent.push(t); else rest.push(t);
+  });
+  urgent.sort((a,b)=>deadlineInfo(a).diff-deadlineInfo(b).diff); // 締切が近い順
+  const sorted=[...rest].sort((a,b)=>heaviness(b)-heaviness(a)); // 重い順
+  const mid=Math.ceil(sorted.length/2);
+  const heavy=sorted.slice(0,mid);   // 上位半分＝重いタスク
+  const light=sorted.slice(mid);     // 下位半分＝軽いタスク
+  // 今日のエネルギーが低い(1-4)なら軽いタスクから、高い(5-10/未設定)なら重いタスクから始める
+  const lightFirst = todayE>0 && todayE<=4;
+  const first = lightFirst ? light : heavy;
+  const second = lightFirst ? heavy : light;
+  const interleaved=[];
+  const max=Math.max(first.length,second.length);
+  for(let i=0;i<max;i++){
+    if(first[i]) interleaved.push(first[i]);
+    if(second[i]) interleaved.push(second[i]);
+  }
+  return [...urgent,...interleaved];
+}
+function renderResult(){
+  const avail=getTodayAvailHours();
+  updateGoalRanking();
+  const active=getActiveForRanking();
+  if(!active.length||!todayE){document.getElementById('result-body').style.display='none';document.getElementById('result-empty').style.display='';return;}
+  document.getElementById('result-empty').style.display='none';document.getElementById('result-body').style.display='';
+  const total=active.reduce((s,t)=>s+t.hours,0);
+  document.getElementById('r-avail').textContent=avail+'h';
+  document.getElementById('r-total').textContent=total.toFixed(1)+'h';
+  document.getElementById('r-energy').textContent=todayE+'/10';
+  const sorted=rankTasks(active);
+  const rbC=i=>i===0?'rb1':i===1?'rb2':i===2?'rb3':'rbn';
+  // 可処分時間で足切りする最初のインデックスを求める
+  let cutIndex=-1,cc=0;
+  for(let i=0;i<sorted.length;i++){cc+=sorted[i].hours;if(cc>avail){cutIndex=i;break;}}
+  let cum=0;
+  document.getElementById('ranked').innerHTML=sorted.map((t,i)=>{
+    cum+=t.hours;const out=cum>avail;
+    const divider=(i===cutIndex)?`<div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px;"><div style="flex:1;height:1px;background:var(--accent);"></div><span style="font-size:11px;color:var(--accent);font-weight:600;white-space:nowrap;">ここまでで${avail}h — 以降は今日は無理せず</span><div style="flex:1;height:1px;background:var(--accent);"></div></div>`:'';
+    const rep=t._rep?` <span style="font-size:11px;color:var(--text-hint);">(${t._rep}回目)</span>`:'';
+    const rank=goalRank[t.id];
+    const goalBonus=(rank&&!goalBonusClaimedThisWeek(t.id))?goalBonusAmount(rank):0;
+    const goalChip=rank?`<span class="chip" style="background:var(--accent2-light);color:var(--accent2);">🎯${rank}位${goalBonus>0?` +${goalBonus}pt`:'（獲得済み）'}</span>`:(goalManual[t.id]?`<span class="chip chip-gray">🎯目標</span>`:'');
+    return`${divider}<div class="task-item${out?' fade-out':''}">
+      <div class="task-item-head">
+        <div class="done-chk" role="checkbox" tabindex="0" aria-checked="false" aria-label="${t.name} 完了にする" onkeydown="kbClick(event)" onclick="toggleResultDone(${t.id},${t._rep||1})"></div>
+        <div class="rank-badge ${rbC(i)}">${i+1}</div>
+        <span class="task-name">${t.name}${rep}</span>
+      </div>
+      <div class="task-item-chips">
+        ${out?'<span class="chip" style="background:#3a1414;color:#e07a7a;">時間外</span>':''}
+        ${goalChip}
+        <span class="chip chip-gray">${t.hours}h</span>
+        ${deadlineChip(t)}
+        <span class="chip ${ECHIP[t.energy]||'chip-e3'}">消費${t.energy}</span>
+        <span class="chip ${PCHIP[t.priority]||'chip-pm'}">重要度${t.priority}</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('ai-box').style.display='none';
+}
+
+async function getAI(){
+  const avail=getTodayAvailHours();
+  const active=[];tasks.forEach(t=>{if(isDoneThisWeek(t.id))return;const cnt=Math.max(1,taskCounts[t.id]||0);const doneCnt=doneCounts[t.id]||0;for(let i=doneCnt;i<cnt;i++)active.push({...t});});
+  const sorted=rankTasks(active);
+  let cutInfo='';
+  {let cum=0;for(let i=0;i<sorted.length;i++){cum+=sorted[i].hours;if(cum>avail){cutInfo=`\n※利用可能時間(${avail}h)を超えるのは${i+1}番目以降です。ここまでで一区切りを提案してください。`;break;}}}
+  const info=sorted.map((t,i)=>{const di=deadlineInfo(t);return`${i+1}. ${t.name}（${t.hours}h、消費${t.energy}/10、重要度:${t.priority}/5${di?'、期限:'+di.label:''}）`;}).join('\n');
+  const prompt=`あなたはキャパシティ管理コーチです。ユーザーの今日の状況を踏まえ、実践的なアドバイスを3〜5行で日本語でください。\n\n利用可能時間: ${avail}時間\n今日のエネルギー: ${todayE}/10（${energyLabel(todayE)}）\nタスク（推奨順）:\n${info}${cutInfo}`;
+  const box=document.getElementById('ai-box'),btn=document.getElementById('ai-btn');
+  box.style.display='';box.textContent='考え中…';btn.disabled=true;btn.textContent='取得中…';
+  try{
+    const res=await fetch('/api/advice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})});
+    if(!res.ok){
+      box.textContent='AIアドバイスを取得できませんでした。時間をおいて再度お試しください。';
+    } else {
+      const data=await res.json();
+      const txt=(data.text||'').trim();
+      box.textContent=txt||'応答が空でした。もう一度お試しください。';
+    }
+  }catch(e){box.textContent='接続に失敗しました。インターネット接続をご確認ください。';}
+  btn.disabled=false;btn.textContent='AIにアドバイスをもらう →';
+}
+
+function goResult(){
+  if(!todayE){toast('エネルギーレベルを選択してください');return;}
+  if(!tasks.some(t=>!isDoneThisWeek(t.id))){toast('未完了のタスクがありません');return;}
+  showTab('result');
+}
+
+function exportData(){
+  const dump={};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&(k.startsWith('cap_'))) dump[k]=localStorage.getItem(k);
+  }
+  const blob=new Blob([JSON.stringify({_type:'capacity-backup',_v:1,data:dump},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`キャパ管理_backup_${todayDateStr()}.json`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('エクスポートしました');
+}
+function importData(ev){
+  const file=ev.target.files&&ev.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const obj=JSON.parse(reader.result);
+      if(!obj||obj._type!=='capacity-backup'||!obj.data){toast('対応していないファイルです');return;}
+      if(!confirm('現在のデータを上書きしてインポートしますか？'))return;
+      Object.keys(obj.data).forEach(k=>{ if(k.startsWith('cap_')) localStorage.setItem(k,obj.data[k]); });
+      loadProfiles();
+      loadProfileData();
+      renderProfileBar(); renderTabs(); renderSettings();
+      if(todayE>0)[1,2,3,4,5,6,7,8,9,10].forEach(i=>document.getElementById('eb'+i)?.classList.toggle('active',i===todayE));
+      renderAll();
+      toast('インポートしました');
+    }catch(e){ toast('読み込みに失敗しました'); }
+  };
+  reader.readAsText(file);
+  ev.target.value='';
+}
+
+init();
+</script>
+</body>
+</html>
